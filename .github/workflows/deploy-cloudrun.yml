@@ -160,6 +160,30 @@ jobs:
 
           gcloud run deploy "${ARGS[@]}"
 
+          # `--allow-unauthenticated` above only *warns* (it does not fail the
+          # command) if granting allUsers the invoker role is blocked by an org
+          # policy (constraints/iam.allowedPolicyMemberDomains, a.k.a. "Domain
+          # Restricted Sharing"). In that case the revision deploys fine but stays
+          # private, and public requests come back as a generic 404 at Google's
+          # edge instead of reaching the container. Re-assert the binding here so
+          # that failure surfaces immediately with a clear reason instead of as an
+          # unexplained 404 in the health check step below.
+          if [ "${ALLOW_UNAUTHENTICATED}" = "true" ]; then
+            echo "Ensuring allUsers has roles/run.invoker..."
+            if ! gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
+              --project "${PROJECT_ID}" \
+              --region "${REGION}" \
+              --member="allUsers" \
+              --role="roles/run.invoker" \
+              --quiet; then
+              echo "::error::Could not grant allUsers the roles/run.invoker binding on ${SERVICE_NAME}. This is almost always an org policy (constraints/iam.allowedPolicyMemberDomains) blocking public IAM bindings — ask a project/org admin to allow allUsers for this service, or set the ALLOW_UNAUTHENTICATED repository variable to 'false' and call the service with an identity token instead."
+              exit 1
+            fi
+          fi
+
+          echo "--- Current IAM policy for ${SERVICE_NAME} ---"
+          gcloud run services get-iam-policy "${SERVICE_NAME}" --project "${PROJECT_ID}" --region "${REGION}"
+
           URL="$(gcloud run services describe "${SERVICE_NAME}" --project "${PROJECT_ID}" --region "${REGION}" --format='value(status.url)')"
           echo "url=${URL}" >> "$GITHUB_OUTPUT"
 
