@@ -167,15 +167,30 @@ jobs:
         run: |
           set -euo pipefail
           URL="${{ steps.deploy.outputs.url }}"
-          for i in $(seq 1 10); do
-            if curl -fsS "${URL}/healthz" > /dev/null && curl -fsS "${URL}/env.js"; then
-              echo ""
+
+          # A brand-new Cloud Run service gets a freshly-minted *.run.app hostname;
+          # Google's edge routing/TLS for that hostname can take a couple of minutes
+          # to propagate globally even though `gcloud run deploy` already reports the
+          # new revision as ready and serving 100% traffic. Requests during that
+          # window come back 404 (not 5xx/timeout). Subsequent deploys reuse the same
+          # hostname and are typically ready immediately, so this mostly affects the
+          # very first deploy of a given service.
+          ATTEMPTS=30
+          SLEEP_SECONDS=10
+          for i in $(seq 1 "${ATTEMPTS}"); do
+            healthz_code="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/healthz" || echo "000")"
+            envjs_code="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/env.js" || echo "000")"
+            if [ "${healthz_code}" = "200" ] && [ "${envjs_code}" = "200" ]; then
+              echo "Healthy after ${i} attempt(s)."
               exit 0
             fi
-            echo "Attempt $i failed, retrying..."
-            sleep 5
+            echo "Attempt ${i}/${ATTEMPTS}: /healthz=${healthz_code} /env.js=${envjs_code}, retrying in ${SLEEP_SECONDS}s..."
+            sleep "${SLEEP_SECONDS}"
           done
-          echo "::error::Health check failed for ${URL}"
+
+          echo "::error::Health check failed for ${URL} after $((ATTEMPTS * SLEEP_SECONDS))s"
+          echo "--- Last response from ${URL}/healthz ---"
+          curl -sS -i "${URL}/healthz" || true
           exit 1
 
       - name: Summary
