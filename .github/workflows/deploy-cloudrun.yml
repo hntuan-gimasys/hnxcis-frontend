@@ -1,0 +1,183 @@
+name: Deploy Frontend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: false
+        default: 'production'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-frontend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'asia-southeast1' }}
+  AR_REPOSITORY: ${{ vars.AR_REPOSITORY || 'hnxcis' }}
+  SERVICE_NAME: ${{ vars.CLOUD_RUN_SERVICE || 'hnxcis-frontend' }}
+  RUNTIME_SERVICE_ACCOUNT: ${{ vars.CLOUD_RUN_RUNTIME_SA }}
+  # URL of the backend Cloud Run service, injected into /env.js at container
+  # start — changing it needs no rebuild, only a new revision.
+  API_BASE_URL: ${{ vars.API_BASE_URL }}
+  ALLOW_UNAUTHENTICATED: ${{ vars.ALLOW_UNAUTHENTICATED || 'true' }}
+  WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+jobs:
+  deploy:
+    name: Build & deploy
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate configuration
+        run: |
+          missing=""
+          if [ -z "${PROJECT_ID:-}" ]; then
+            missing="$missing GCP_PROJECT_ID(vars)"
+          fi
+          if [ -z "${API_BASE_URL:-}" ]; then
+            echo "::warning::API_BASE_URL (repository variable) is empty — the SPA will call its own origin and API requests will 404."
+          fi
+          if [ -z "${WIF_PROVIDER:-}" ] && [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            missing="$missing GCP_WORKLOAD_IDENTITY_PROVIDER-or-GCP_SA_KEY(secrets)"
+          fi
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required configuration:$missing"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run lint
+
+      # --- Authenticate to Google Cloud -------------------------------------
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        if: env.WIF_PROVIDER != ''
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+
+      - name: Authenticate to Google Cloud (service account key)
+        if: env.WIF_PROVIDER == ''
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Compute image tags
+        id: image
+        run: |
+          BASE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/${SERVICE_NAME}"
+          echo "sha_tag=${BASE}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=${BASE}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          docker build \
+            -t "${{ steps.image.outputs.sha_tag }}" \
+            -t "${{ steps.image.outputs.latest_tag }}" \
+            .
+
+      - name: Push image
+        run: |
+          docker push "${{ steps.image.outputs.sha_tag }}"
+          docker push "${{ steps.image.outputs.latest_tag }}"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          set -euo pipefail
+
+          ENV_VARS="^##^APP_ENV=production"
+          if [ -n "${API_BASE_URL:-}" ]; then
+            ENV_VARS="${ENV_VARS}##API_BASE_URL=${API_BASE_URL}"
+          fi
+
+          ARGS=(
+            "${SERVICE_NAME}"
+            --image "${{ steps.image.outputs.sha_tag }}"
+            --region "${REGION}"
+            --platform managed
+            --port 8080
+            --cpu 1
+            --memory 256Mi
+            --timeout 60
+            --min-instances "${{ vars.MIN_INSTANCES || '0' }}"
+            --max-instances "${{ vars.MAX_INSTANCES || '10' }}"
+            --set-env-vars "${ENV_VARS}"
+            --quiet
+          )
+
+          if [ -n "${RUNTIME_SERVICE_ACCOUNT:-}" ]; then
+            ARGS+=(--service-account "${RUNTIME_SERVICE_ACCOUNT}")
+          fi
+
+          if [ "${ALLOW_UNAUTHENTICATED}" = "true" ]; then
+            ARGS+=(--allow-unauthenticated)
+          else
+            ARGS+=(--no-allow-unauthenticated)
+          fi
+
+          gcloud run deploy "${ARGS[@]}"
+
+          URL="$(gcloud run services describe "${SERVICE_NAME}" --region "${REGION}" --format='value(status.url)')"
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the SPA is served
+        run: |
+          set -euo pipefail
+          URL="${{ steps.deploy.outputs.url }}"
+          for i in $(seq 1 10); do
+            if curl -fsS "${URL}/healthz" > /dev/null && curl -fsS "${URL}/env.js"; then
+              echo ""
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying..."
+            sleep 5
+          done
+          echo "::error::Health check failed for ${URL}"
+          exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "### Frontend deployed :rocket:"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Service | \`${SERVICE_NAME}\` |"
+            echo "| Region | \`${REGION}\` |"
+            echo "| URL | ${{ steps.deploy.outputs.url }} |"
+            echo "| Image | \`${{ steps.image.outputs.sha_tag }}\` |"
+            echo "| Backend API | \`${API_BASE_URL:-same origin}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
