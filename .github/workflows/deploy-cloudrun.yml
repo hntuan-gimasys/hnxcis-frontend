@@ -30,7 +30,14 @@ env:
   # URL of the backend Cloud Run service, injected into /env.js at container
   # start — changing it needs no rebuild, only a new revision.
   API_BASE_URL: ${{ vars.API_BASE_URL }}
-  ALLOW_UNAUTHENTICATED: ${{ vars.ALLOW_UNAUTHENTICATED || 'true' }}
+  # Defaults to 'false': the bof-intern org enforces a Domain Restricted Sharing
+  # policy (constraints/iam.allowedPolicyMemberDomains) that blocks granting
+  # allUsers access, so `--allow-unauthenticated` cannot actually take effect here.
+  # Flip to 'true' (repository variable) once that policy has an exception for
+  # this project/service — note the public portal (PublicCorporateNews) needs
+  # real anonymous visitors to reach the service, so this is a stop-gap, not a
+  # long-term state.
+  ALLOW_UNAUTHENTICATED: ${{ vars.ALLOW_UNAUTHENTICATED || 'false' }}
   WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
@@ -160,15 +167,13 @@ jobs:
 
           gcloud run deploy "${ARGS[@]}"
 
-          # `--allow-unauthenticated` above only *warns* (it does not fail the
-          # command) if granting allUsers the invoker role is blocked by an org
-          # policy (constraints/iam.allowedPolicyMemberDomains, a.k.a. "Domain
-          # Restricted Sharing"). In that case the revision deploys fine but stays
-          # private, and public requests come back as a generic 404 at Google's
-          # edge instead of reaching the container. Re-assert the binding here so
-          # that failure surfaces immediately with a clear reason instead of as an
-          # unexplained 404 in the health check step below.
           if [ "${ALLOW_UNAUTHENTICATED}" = "true" ]; then
+            # `--allow-unauthenticated` above only *warns* (it does not fail the
+            # command) if granting allUsers the invoker role is blocked by an org
+            # policy (constraints/iam.allowedPolicyMemberDomains, a.k.a. "Domain
+            # Restricted Sharing"). Re-assert the binding here so that failure
+            # surfaces immediately with a clear reason instead of as an
+            # unexplained 404 in the health check step below.
             echo "Ensuring allUsers has roles/run.invoker..."
             if ! gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
               --project "${PROJECT_ID}" \
@@ -179,6 +184,21 @@ jobs:
               echo "::error::Could not grant allUsers the roles/run.invoker binding on ${SERVICE_NAME}. This is almost always an org policy (constraints/iam.allowedPolicyMemberDomains) blocking public IAM bindings — ask a project/org admin to allow allUsers for this service, or set the ALLOW_UNAUTHENTICATED repository variable to 'false' and call the service with an identity token instead."
               exit 1
             fi
+          else
+            # Public access is blocked org-wide for now (see the ALLOW_UNAUTHENTICATED
+            # comment above), so the service requires authentication for every caller
+            # — including this workflow's own health check. Grant just the deploying
+            # identity invoker access so the check below can call it with an identity
+            # token; this does NOT make the service reachable by real anonymous users.
+            DEPLOYER_ACCOUNT="$(gcloud config get-value account 2>/dev/null)"
+            echo "Granting roles/run.invoker to the CI identity (${DEPLOYER_ACCOUNT}) for health-check purposes only..."
+            gcloud run services add-iam-policy-binding "${SERVICE_NAME}" \
+              --project "${PROJECT_ID}" \
+              --region "${REGION}" \
+              --member="serviceAccount:${DEPLOYER_ACCOUNT}" \
+              --role="roles/run.invoker" \
+              --quiet
+            echo "::warning::ALLOW_UNAUTHENTICATED is 'false' — ${SERVICE_NAME} requires authentication for every request, including from the public portal's real anonymous visitors. This is a stop-gap around the org's Domain Restricted Sharing policy; the service is not actually publicly usable until that policy has an exception and ALLOW_UNAUTHENTICATED is set to 'true'."
           fi
 
           echo "--- Current IAM policy for ${SERVICE_NAME} ---"
@@ -192,6 +212,17 @@ jobs:
           set -euo pipefail
           URL="${{ steps.deploy.outputs.url }}"
 
+          # When the service requires authentication (ALLOW_UNAUTHENTICATED=false),
+          # anonymous requests never reach the container — Cloud Run/Google's edge
+          # returns a generic 404 instead. Mint an identity token scoped to this
+          # service's URL and send it as a Bearer token; the CI identity was just
+          # granted roles/run.invoker on this service in the previous step.
+          AUTH_HEADER=()
+          if [ "${ALLOW_UNAUTHENTICATED}" != "true" ]; then
+            ID_TOKEN="$(gcloud auth print-identity-token --audiences="${URL}")"
+            AUTH_HEADER=(-H "Authorization: Bearer ${ID_TOKEN}")
+          fi
+
           # A brand-new Cloud Run service gets a freshly-minted *.run.app hostname;
           # Google's edge routing/TLS for that hostname can take a couple of minutes
           # to propagate globally even though `gcloud run deploy` already reports the
@@ -202,8 +233,8 @@ jobs:
           ATTEMPTS=30
           SLEEP_SECONDS=10
           for i in $(seq 1 "${ATTEMPTS}"); do
-            healthz_code="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/healthz" || echo "000")"
-            envjs_code="$(curl -s -o /dev/null -w '%{http_code}' "${URL}/env.js" || echo "000")"
+            healthz_code="$(curl -s -o /dev/null -w '%{http_code}' "${AUTH_HEADER[@]}" "${URL}/healthz" || echo "000")"
+            envjs_code="$(curl -s -o /dev/null -w '%{http_code}' "${AUTH_HEADER[@]}" "${URL}/env.js" || echo "000")"
             if [ "${healthz_code}" = "200" ] && [ "${envjs_code}" = "200" ]; then
               echo "Healthy after ${i} attempt(s)."
               exit 0
@@ -214,7 +245,7 @@ jobs:
 
           echo "::error::Health check failed for ${URL} after $((ATTEMPTS * SLEEP_SECONDS))s"
           echo "--- Last response from ${URL}/healthz ---"
-          curl -sS -i "${URL}/healthz" || true
+          curl -sS -i "${AUTH_HEADER[@]}" "${URL}/healthz" || true
           exit 1
 
       - name: Summary
@@ -229,4 +260,5 @@ jobs:
             echo "| URL | ${{ steps.deploy.outputs.url }} |"
             echo "| Image | \`${{ steps.image.outputs.sha_tag }}\` |"
             echo "| Backend API | \`${API_BASE_URL:-same origin}\` |"
+            echo "| Public access | \`${ALLOW_UNAUTHENTICATED}\`$( [ "${ALLOW_UNAUTHENTICATED}" != "true" ] && echo ' — **requires auth, real anonymous visitors cannot reach it yet**' ) |"
           } >> "$GITHUB_STEP_SUMMARY"
