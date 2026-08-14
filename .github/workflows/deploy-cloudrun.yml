@@ -60,6 +60,15 @@ jobs:
             exit 1
           fi
 
+          # Surface the resolved project so a shadowed value is caught immediately
+          # instead of failing later inside `gcloud run deploy`. NOTE: this job runs
+          # under `environment: ${{ github.event.inputs.environment || 'production' }}`
+          # — if a GitHub Environment of that name defines its own `GCP_PROJECT_ID`
+          # variable, it silently overrides the repository-level variable of the same
+          # name. If PROJECT_ID below isn't what you set at the repo level, check
+          # Settings → Environments → ${{ github.event.inputs.environment || 'production' }} → Variables.
+          echo "Resolved GCP project: ${PROJECT_ID}"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -126,6 +135,7 @@ jobs:
           ARGS=(
             "${SERVICE_NAME}"
             --image "${{ steps.image.outputs.sha_tag }}"
+            --project "${PROJECT_ID}"
             --region "${REGION}"
             --platform managed
             --port 8080
@@ -150,7 +160,7 @@ jobs:
 
           gcloud run deploy "${ARGS[@]}"
 
-          URL="$(gcloud run services describe "${SERVICE_NAME}" --region "${REGION}" --format='value(status.url)')"
+          URL="$(gcloud run services describe "${SERVICE_NAME}" --project "${PROJECT_ID}" --region "${REGION}" --format='value(status.url)')"
           echo "url=${URL}" >> "$GITHUB_OUTPUT"
 
       - name: Verify the SPA is served
