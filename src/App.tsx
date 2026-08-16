@@ -19,6 +19,7 @@ import {
 import {
   UserAccount,
   Submission,
+  SubmissionStatus,
   AuditLog,
   NotificationItem,
   Alert,
@@ -97,77 +98,120 @@ export default function App() {
   const [selectedAuditLogs, setSelectedAuditLogs] = useState<AuditLog[]>([]);
 
   // Workflow Handlers
-  const handleApproveSubmission = (subId: number, comment: string) => {
-    setSubmissions((prev) =>
-      prev.map((s) => {
-        if (s.id === subId) {
-          return {
-            ...s,
-            status: 'PUBLISHED',
-            isPublic: true,
-            publishedAt: new Date().toISOString(),
-          };
-        }
-        return s;
-      })
-    );
+  /** Ghi một dòng Audit Trail cho việc chuyển trạng thái hồ sơ (X3). */
+  const logSubmissionTransition = (
+    sub: Submission,
+    action: AuditLog['action'],
+    fromStatus: SubmissionStatus,
+    afterJson: Record<string, any>,
+    reason: string
+  ) => {
+    setAuditLogs((prev) => [
+      {
+        id: prev.reduce((max, l) => Math.max(max, l.id), 0) + 1,
+        occurredAt: new Date().toISOString(),
+        actorId: currentUser.id,
+        actorName: currentUser.fullName,
+        actorRole: currentUser.roleCode,
+        actorIp: '127.0.0.1',
+        correlationId: `req-${Date.now()}`,
+        entityType: 'SUBMISSION',
+        entityId: sub.id,
+        entityLabel: sub.submissionNo || `Hồ sơ ID #${sub.id}`,
+        action,
+        beforeJson: { status: fromStatus },
+        afterJson,
+        diffJson: { status: `${fromStatus} -> ${afterJson.status}` },
+        reason,
+        result: 'SUCCESS',
+      },
+      ...prev,
+    ]);
+  };
 
-    // Create Audit Log
-    const newLog: AuditLog = {
-      id: auditLogs.length + 1,
-      occurredAt: new Date().toISOString(),
-      actorId: currentUser.id,
-      actorName: currentUser.fullName,
-      actorRole: currentUser.roleCode,
-      actorIp: '127.0.0.1',
-      correlationId: `req-${Date.now()}`,
-      entityType: 'SUBMISSION',
-      entityId: subId,
-      entityLabel: `Hồ sơ ID #${subId}`,
-      action: 'PUBLISH',
-      beforeJson: { status: 'PENDING_APPROVAL' },
-      afterJson: { status: 'PUBLISHED', isPublic: true },
-      diffJson: { status: 'PENDING_APPROVAL -> PUBLISHED' },
-      reason: comment || 'Chấp thuận công bố thông tin',
-      result: 'SUCCESS',
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
+  /** Chuyên viên Sở soát xét xong: SUBMITTED -> REVIEWED (FR-039). */
+  const handleReviewSubmission = (subId: number) => {
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
+
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? { ...s, status: 'REVIEWED', reviewedAt: new Date().toISOString() }
+          : s
+      )
+    );
+    logSubmissionTransition(sub, 'REVIEW', sub.status, { status: 'REVIEWED' }, 'Hoàn tất soát xét hồ sơ');
+    alert('Đã hoàn tất soát xét, hồ sơ được trình Lãnh đạo Sở phê duyệt.');
+  };
+
+  const handleApproveSubmission = (subId: number, comment: string) => {
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
+
+    const now = new Date().toISOString();
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? { ...s, status: 'PUBLISHED', isPublic: true, approvedAt: now, publishedAt: now }
+          : s
+      )
+    );
+    logSubmissionTransition(
+      sub,
+      'PUBLISH',
+      sub.status,
+      { status: 'PUBLISHED', isPublic: true },
+      comment || 'Chấp thuận công bố thông tin'
+    );
     alert('Đã phê duyệt và công bố thông tin thành công!');
   };
 
   const handleRejectSubmission = (subId: number, reason: string) => {
-    setSubmissions((prev) =>
-      prev.map((s) => {
-        if (s.id === subId) {
-          return {
-            ...s,
-            status: 'CANCELLED',
-          };
-        }
-        return s;
-      })
-    );
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
 
-    const newLog: AuditLog = {
-      id: auditLogs.length + 1,
-      occurredAt: new Date().toISOString(),
-      actorId: currentUser.id,
-      actorName: currentUser.fullName,
-      actorRole: currentUser.roleCode,
-      actorIp: '127.0.0.1',
-      correlationId: `req-${Date.now()}`,
-      entityType: 'SUBMISSION',
-      entityId: subId,
-      entityLabel: `Hồ sơ ID #${subId}`,
-      action: 'REJECT',
-      beforeJson: { status: 'PENDING_APPROVAL' },
-      afterJson: { status: 'CANCELLED' },
-      diffJson: { status: 'PENDING_APPROVAL -> CANCELLED' },
-      reason: reason || 'Từ chối phê duyệt',
-      result: 'SUCCESS',
-    };
-    setAuditLogs((prev) => [newLog, ...prev]);
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === subId ? { ...s, status: 'CANCELLED' } : s))
+    );
+    logSubmissionTransition(
+      sub,
+      'REJECT',
+      sub.status,
+      { status: 'CANCELLED' },
+      reason || 'Từ chối phê duyệt'
+    );
     alert('Đã từ chối hồ sơ và gửi thông báo yêu cầu đính chính!');
+  };
+
+  /** Gỡ tin đã công bố khỏi Corporate News, bắt buộc có lý do (FR-042). */
+  const handleHideSubmission = (subId: number, reason: string) => {
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
+
+    const now = new Date().toISOString();
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? {
+              ...s,
+              status: 'HIDDEN',
+              isPublic: false,
+              hiddenAt: now,
+              hiddenBy: currentUser.id,
+              hideReason: reason,
+            }
+          : s
+      )
+    );
+    logSubmissionTransition(
+      sub,
+      'HIDE',
+      sub.status,
+      { status: 'HIDDEN', isPublic: false },
+      reason || 'Gỡ tin đã công bố'
+    );
+    alert('Đã gỡ tin khỏi chuyên trang Công bố Thông tin công khai.');
   };
 
   const handleOpenAuditHistory = (type: string, id: number, label: string) => {
@@ -291,8 +335,10 @@ export default function App() {
                   submissions={submissions}
                   organizations={organizations}
                   alerts={alerts}
+                  onReviewSubmission={handleReviewSubmission}
                   onApproveSubmission={handleApproveSubmission}
                   onRejectSubmission={handleRejectSubmission}
+                  onHideSubmission={handleHideSubmission}
                   onAuditHistory={handleOpenAuditHistory}
                   currentUserId={currentUser.id}
                 />

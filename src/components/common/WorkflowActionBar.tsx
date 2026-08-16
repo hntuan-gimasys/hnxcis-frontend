@@ -12,6 +12,11 @@ interface WorkflowActionBarProps {
   submitterId?: number;
   currentUserId: number;
   onAction: (actionCode: string, comment?: string, reason?: string) => void;
+  /**
+   * Guard expression evaluated before APPROVE (see workflowEngine.evaluateGuard).
+   * Only luồng hồ sơ niêm yết ràng buộc phí; luồng CBTT bỏ trống nên không chặn.
+   */
+  approveGuardExpr?: string;
   feePaymentStatus?: string;
   reviewedAt?: string;
   approvedAt?: string;
@@ -22,6 +27,7 @@ export const WorkflowActionBar: React.FC<WorkflowActionBarProps> = ({
   submitterId,
   currentUserId,
   onAction,
+  approveGuardExpr,
   feePaymentStatus,
   reviewedAt,
   approvedAt,
@@ -42,9 +48,11 @@ export const WorkflowActionBar: React.FC<WorkflowActionBarProps> = ({
       return;
     }
 
-    if (actionCode === 'APPROVE') {
-      const guardCheck = workflowEngine.evaluateGuard("#fee.paymentStatus == 'CONFIRMED'", {
+    if (actionCode === 'APPROVE' && approveGuardExpr) {
+      const guardCheck = workflowEngine.evaluateGuard(approveGuardExpr, {
         feePaymentStatus,
+        reviewedAt,
+        approvedAt,
       });
       if (!guardCheck.ok) {
         setErrorMsg(guardCheck.reason || 'Chưa đủ điều kiện chuyển tiếp');

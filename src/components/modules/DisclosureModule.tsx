@@ -29,25 +29,39 @@ interface DisclosureModuleProps {
   submissions: Submission[];
   organizations?: Organization[];
   alerts: Alert[];
+  onReviewSubmission: (subId: number) => void;
   onApproveSubmission: (subId: number, comment: string) => void;
   onRejectSubmission: (subId: number, reason: string) => void;
+  onHideSubmission: (subId: number, reason: string) => void;
   onAuditHistory: (type: string, id: number, label: string) => void;
   /** Used by the dual-control guard in WorkflowActionBar (PZ6). */
   currentUserId?: number;
 }
+
+const isPendingStatus = (status: string) =>
+  status === 'SUBMITTED' || status === 'REVIEWED' || status === 'PENDING_APPROVAL';
 
 export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
   activeModule,
   submissions,
   organizations = INITIAL_ORGANIZATIONS,
   alerts,
+  onReviewSubmission,
   onApproveSubmission,
   onRejectSubmission,
+  onHideSubmission,
   onAuditHistory,
   currentUserId = 0,
 }) => {
-  const [selectedSub, setSelectedSub] = useState<Submission | null>(
-    submissions.find((s) => s.status === 'SUBMITTED' || s.status === 'REVIEWED' || s.status === 'PENDING_APPROVAL') || null
+  // Chỉ giữ id: giữ nguyên cả object thì sau khi duyệt/từ chối, panel bên phải
+  // vẫn hiển thị bản ghi cũ vì `submissions` đã được thay bằng object mới.
+  const [selectedSubId, setSelectedSubId] = useState<number | null>(
+    () => submissions.find((s) => isPendingStatus(s.status))?.id ?? null
+  );
+
+  const selectedSub = useMemo(
+    () => (submissions || []).find((s) => s.id === selectedSubId) || null,
+    [submissions, selectedSubId]
   );
 
   // Search & Filter State
@@ -59,13 +73,7 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
   const filteredSubmissions = useMemo(() => {
     return (submissions || []).filter((sub) => {
       // Status filter
-      if (statusFilter === 'PENDING') {
-        const isPending =
-          sub.status === 'SUBMITTED' ||
-          sub.status === 'REVIEWED' ||
-          sub.status === 'PENDING_APPROVAL';
-        if (!isPending) return false;
-      }
+      if (statusFilter === 'PENDING' && !isPendingStatus(sub.status)) return false;
 
       // Search term filter (Organization Name, Symbol, Submission No, Title)
       if (searchTerm) {
@@ -146,9 +154,9 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
       headerVi: 'Thao tác',
       render: (row) => (
         <button
-          onClick={() => setSelectedSub(row)}
+          onClick={() => setSelectedSubId(row.id)}
           className={`px-3 py-1 text-xs font-bold rounded-sm uppercase tracking-wider shadow-xs cursor-pointer ${
-            selectedSub?.id === row.id
+            selectedSubId === row.id
               ? 'bg-indigo-800 text-white ring-2 ring-indigo-400'
               : 'bg-indigo-600 hover:bg-indigo-700 text-white'
           }`}
@@ -190,7 +198,7 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Chờ phê duyệt ({(submissions || []).filter((s) => s.status === 'SUBMITTED' || s.status === 'REVIEWED' || s.status === 'PENDING_APPROVAL').length})
+                  Chờ phê duyệt ({(submissions || []).filter((s) => isPendingStatus(s.status)).length})
                 </button>
                 <button
                   onClick={() => setStatusFilter('ALL')}
@@ -311,11 +319,17 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                   currentStatus={selectedSub.status}
                   submitterId={selectedSub.createdBy}
                   currentUserId={currentUserId}
+                  reviewedAt={selectedSub.reviewedAt}
+                  approvedAt={selectedSub.approvedAt}
                   onAction={(actionCode, comment, reason) => {
-                    if (actionCode === 'APPROVE' || actionCode === 'PUBLISH') {
+                    if (actionCode === 'REVIEW') {
+                      onReviewSubmission(selectedSub.id);
+                    } else if (actionCode === 'APPROVE' || actionCode === 'PUBLISH') {
                       onApproveSubmission(selectedSub.id, comment || '');
                     } else if (actionCode === 'REJECT' || actionCode === 'RETURN') {
                       onRejectSubmission(selectedSub.id, reason || '');
+                    } else if (actionCode === 'HIDE') {
+                      onHideSubmission(selectedSub.id, reason || '');
                     } else {
                       onAuditHistory('SUBMISSION', selectedSub.id, selectedSub.submissionNo);
                     }
