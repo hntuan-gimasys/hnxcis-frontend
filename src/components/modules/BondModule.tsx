@@ -3,24 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import {
-  Layers,
-  Award,
-  CheckCircle2,
-  Calendar,
-  AlertTriangle,
-} from 'lucide-react';
+import React from 'react';
+import { Layers, Award } from 'lucide-react';
 import { BondProfile } from '../../types/hnx';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
 
 interface BondModuleProps {
+  /** `tttp_bonds` | `tttp_green_bonds` — drives which tab is shown. */
+  activeModule: string;
+  onChangeModule: (moduleCode: string) => void;
   bonds: BondProfile[];
   onAuditHistory: (type: string, id: number, label: string) => void;
 }
 
-export const BondModule: React.FC<BondModuleProps> = ({ bonds, onAuditHistory }) => {
-  const [activeTab, setActiveTab] = useState<'bonds' | 'green'>('bonds');
+export const BondModule: React.FC<BondModuleProps> = ({
+  activeModule,
+  onChangeModule,
+  bonds,
+  onAuditHistory,
+}) => {
+  // Derived from the sidebar selection so both stay in sync.
+  const activeTab: 'bonds' | 'green' = activeModule === 'tttp_green_bonds' ? 'green' : 'bonds';
+  const setActiveTab = (tab: 'bonds' | 'green') =>
+    onChangeModule(tab === 'green' ? 'tttp_green_bonds' : 'tttp_bonds');
 
   const bondColumns: ColumnDef<BondProfile>[] = [
     {

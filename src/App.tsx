@@ -264,6 +264,7 @@ export default function App() {
               {activeModule.startsWith('qlny_') && (
                 <ListingModule
                   activeModule={activeModule}
+                  onChangeModule={setActiveModule}
                   organizations={organizations}
                   securities={securities}
                   equityProfiles={equityProfiles}
@@ -277,6 +278,8 @@ export default function App() {
 
               {activeModule.startsWith('tttp_') && (
                 <BondModule
+                  activeModule={activeModule}
+                  onChangeModule={setActiveModule}
                   bonds={bondProfiles}
                   onAuditHistory={handleOpenAuditHistory}
                 />

@@ -3,18 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Building,
-  Users,
   AlertTriangle,
   ShieldAlert,
-  Award,
   CreditCard,
   CalendarDays,
   Plus,
-  CheckCircle2,
-  FileSpreadsheet,
 } from 'lucide-react';
 import {
   Organization,
@@ -28,8 +24,31 @@ import {
 import { StatusBadge } from '../common/StatusBadge';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
 
+/**
+ * Sidebar module code <-> sub tab. The sub tabs and the sidebar entries are two
+ * views of the same selection, so the tab is derived from `activeModule` rather
+ * than kept in local state (otherwise picking "Kiểm soát Trạng thái" in the
+ * sidebar would still land on the "Hồ sơ Cổ phiếu" tab).
+ */
+const MODULE_TO_TAB: Record<string, string> = {
+  qlny_equities: 'equities',
+  qlny_status_control: 'status_control',
+  qlny_delisting: 'delisting',
+  qlny_fees: 'fees',
+  qlny_corp_actions: 'corp_actions',
+};
+
+const TAB_TO_MODULE: Record<string, string> = {
+  equities: 'qlny_equities',
+  status_control: 'qlny_status_control',
+  delisting: 'qlny_delisting',
+  fees: 'qlny_fees',
+  corp_actions: 'qlny_corp_actions',
+};
+
 interface ListingModuleProps {
   activeModule: string;
+  onChangeModule: (moduleCode: string) => void;
   organizations: Organization[];
   securities: SecurityItem[];
   equityProfiles: EquityProfile[];
@@ -42,6 +61,7 @@ interface ListingModuleProps {
 
 export const ListingModule: React.FC<ListingModuleProps> = ({
   activeModule,
+  onChangeModule,
   organizations,
   securities,
   equityProfiles,
@@ -51,7 +71,8 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
   userRole,
   onAuditHistory,
 }) => {
-  const [subTab, setSubTab] = useState<string>('equities');
+  const subTab = MODULE_TO_TAB[activeModule] || 'equities';
+  const setSubTab = (tab: string) => onChangeModule(TAB_TO_MODULE[tab] || 'qlny_equities');
 
   const equityColumns: ColumnDef<EquityProfile>[] = [
     {
