@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Download, Filter, RefreshCw } from 'lucide-react';
 
 export interface ColumnDef<T> {
@@ -21,6 +21,16 @@ interface DynamicTableProps<T> {
   onSearch?: (term: string) => void;
   onExportExcel?: () => void;
   actions?: (row: T) => React.ReactNode;
+  /**
+   * `compact` cho màn hình nghiệp vụ của P.QLNY: bảng dày đặc, nhiều dòng trong
+   * một màn hình, ưu tiên tốc độ đọc/thao tác hơn khoảng thở.
+   */
+  density?: 'comfortable' | 'compact';
+  /**
+   * Bật điều hướng bàn phím: ↑ ↓ chuyển dòng, Home/End về đầu/cuối trang,
+   * Enter mở dòng đang chọn. Không truyền thì bảng giữ nguyên hành vi cũ.
+   */
+  onRowActivate?: (row: T) => void;
 }
 
 export function DynamicTable<T extends { id: number }>({
@@ -30,10 +40,17 @@ export function DynamicTable<T extends { id: number }>({
   searchPlaceholder = 'Tìm kiếm theo từ khóa...',
   onExportExcel,
   actions,
+  density = 'comfortable',
+  onRowActivate,
 }: DynamicTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
+  const pageSize = density === 'compact' ? 20 : 10;
+
+  const isCompact = density === 'compact';
+  const cellPad = isCompact ? 'px-3 py-1.5' : 'px-4 py-3';
+  const headPad = isCompact ? 'px-3 py-2' : 'px-4 py-3';
 
   const filteredData = (data || []).filter((item) => {
     if (!searchTerm) return true;
@@ -57,6 +74,41 @@ export function DynamicTable<T extends { id: number }>({
 
   const safePage = Math.min(currentPage, totalPages);
   const paginatedData = filteredData.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  /** Điều hướng bằng bàn phím trong phạm vi trang hiện tại. */
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>, idx: number) => {
+    if (!onRowActivate) return;
+
+    const focusRow = (target: number) => {
+      const clamped = Math.max(0, Math.min(paginatedData.length - 1, target));
+      rowRefs.current[clamped]?.focus();
+    };
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        focusRow(idx + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        focusRow(idx - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusRow(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        focusRow(paginatedData.length - 1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        onRowActivate(paginatedData[idx]);
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
@@ -93,19 +145,19 @@ export function DynamicTable<T extends { id: number }>({
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-100/70">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-12">
+              <th className={`${headPad} text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-12`}>
                 STT
               </th>
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
+                  className={`${headPad} text-left text-xs font-semibold text-slate-600 uppercase tracking-wider`}
                 >
                   {col.headerVi}
                 </th>
               ))}
               {actions && (
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <th className={`${headPad} text-right text-xs font-semibold text-slate-600 uppercase tracking-wider`}>
                   Thao tác
                 </th>
               )}
@@ -118,24 +170,38 @@ export function DynamicTable<T extends { id: number }>({
                   colSpan={columns.length + (actions ? 2 : 1)}
                   className="px-4 py-8 text-center text-sm text-slate-500"
                 >
-                  Không tìm thấy dữ liệu phù hợp
+                  Không có dữ liệu
                 </td>
               </tr>
             ) : (
               paginatedData.map((row, idx) => (
-                <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                <tr
+                  key={row.id}
+                  ref={(el) => {
+                    rowRefs.current[idx] = el;
+                  }}
+                  tabIndex={onRowActivate ? 0 : undefined}
+                  onKeyDown={(e) => handleRowKeyDown(e, idx)}
+                  onDoubleClick={onRowActivate ? () => onRowActivate(row) : undefined}
+                  className={`transition-colors hover:bg-slate-50/80 ${
+                    onRowActivate
+                      ? 'focus:outline-none focus:bg-indigo-50 focus:ring-2 focus:ring-inset focus:ring-indigo-500 cursor-default'
+                      : ''
+                  }`}
+                >
+                  <td className={`${cellPad} text-xs text-slate-500`}>
                     {(safePage - 1) * pageSize + idx + 1}
                   </td>
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3 text-sm text-slate-800">
+                    <td
+                      key={col.key}
+                      className={`${cellPad} ${isCompact ? 'text-xs' : 'text-sm'} text-slate-800`}
+                    >
                       {col.render ? col.render(row) : (row as any)[col.key]}
                     </td>
                   ))}
                   {actions && (
-                    <td className="px-4 py-3 text-right text-sm font-medium">
-                      {actions(row)}
-                    </td>
+                    <td className={`${cellPad} text-right text-sm font-medium`}>{actions(row)}</td>
                   )}
                 </tr>
               ))
@@ -146,9 +212,16 @@ export function DynamicTable<T extends { id: number }>({
 
       {/* Pagination */}
       <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
-        <div>
-          Hiển thị {filteredData.length === 0 ? 0 : (safePage - 1) * pageSize + 1} -{' '}
-          {Math.min(safePage * pageSize, filteredData.length)} trên tổng số {filteredData.length} kết quả
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span>
+            Hiển thị {filteredData.length === 0 ? 0 : (safePage - 1) * pageSize + 1} -{' '}
+            {Math.min(safePage * pageSize, filteredData.length)} trên tổng số {filteredData.length} kết quả
+          </span>
+          {onRowActivate && (
+            <span className="text-[11px] text-slate-400 hidden sm:inline">
+              Bấm vào bảng rồi dùng ↑ ↓ để chuyển dòng, Enter để mở
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-1">
           <button

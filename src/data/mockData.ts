@@ -800,6 +800,22 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
     periodCode: 'SEMI_2026', dueDate: '2026-08-18', submittedAt: '2026-08-14T03:00:00Z',
     status: 'SUBMITTED', lang: 'vi', isPublic: false, translationStatus: 'NONE',
   },
+  {
+    // Bản đính chính của hồ sơ id 13 — dùng để test màn hình xem nhanh khác biệt
+    // giữa bản gốc và bản sửa (persona Lãnh đạo P.TTTT).
+    id: 15, createdAt: '2026-08-15T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VIC-YC01-DC', templateId: 2, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'ON_DEMAND', organizationId: 3, securityId: 3,
+    titleVi:
+      'Đính chính: Giải trình theo yêu cầu của HNX về biến động giá cổ phiếu - Vingroup (VIC)',
+    payload: {
+      summary_note:
+        'Giải trình việc giá cổ phiếu tăng trần 6 phiên liên tiếp do yếu tố cung cầu của thị trường, doanh nghiệp không có thông tin nào ảnh hưởng tới giá.',
+    },
+    periodCode: 'AD_HOC', dueDate: '2026-08-16', submittedAt: '2026-08-15T03:00:00Z',
+    status: 'SUBMITTED', lang: 'vi', isPublic: false, translationStatus: 'NONE',
+    correctionOfId: 13, correctionType: 'MATERIAL_CORRECTION',
+  },
 ];
 
 export const INITIAL_ALERTS: Alert[] = [

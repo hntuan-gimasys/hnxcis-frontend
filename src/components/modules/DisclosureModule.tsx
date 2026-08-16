@@ -23,6 +23,7 @@ import { INITIAL_ORGANIZATIONS, INITIAL_TEMPLATES } from '../../data/mockData';
 import { StatusBadge } from '../common/StatusBadge';
 import { WorkflowActionBar } from '../common/WorkflowActionBar';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
+import { diffWords, hasChanges } from '../../lib/textDiff';
 
 interface DisclosureModuleProps {
   activeModule: string;
@@ -90,6 +91,26 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
   const needsTranslation = Boolean(selectedTemplate?.autoTranslate);
   const isProofreadStage = selectedSub?.status === 'APPROVED' && needsTranslation;
 
+  /**
+   * Trên mobile panel duyệt là bottom sheet: chọn hồ sơ thì mở, đóng thì quay lại
+   * danh sách. Từ lg trở lên panel là cột phải cố định nên state này không dùng.
+   */
+  const [panelOpenMobile, setPanelOpenMobile] = useState(false);
+
+  /** Chọn nhiều hồ sơ để duyệt hàng loạt (persona Lãnh đạo P.TTTT). */
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  /** Bản gốc của hồ sơ đính chính, để xem nhanh khác biệt. */
+  const originalSub = useMemo(
+    () =>
+      selectedSub?.correctionOfId
+        ? (submissions || []).find((s) => s.id === selectedSub.correctionOfId) || null
+        : null,
+    [submissions, selectedSub]
+  );
+
+  const [showDiff, setShowDiff] = useState(false);
+
   // Bản nháp EN đang sửa. Đồng bộ lại khi đổi hồ sơ hoặc khi bản lưu thay đổi,
   // nếu không thì panel sẽ giữ nội dung của hồ sơ được chọn trước đó.
   const [draftTitleEn, setDraftTitleEn] = useState('');
@@ -140,7 +161,53 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
     });
   }, [submissions, organizations, statusFilter, searchTerm, dateFilter]);
 
+  /** Chỉ hồ sơ đã soát xét mới duyệt được, và không tự duyệt hồ sơ mình lập (PZ6). */
+  const canBatchApprove = (sub: Submission) =>
+    ['REVIEWED', 'PENDING_APPROVAL'].includes(sub.status) && sub.createdBy !== currentUserId;
+
+  const batchEligible = filteredSubmissions.filter(canBatchApprove);
+  const selectedEligible = batchEligible.filter((s) => selectedIds.includes(s.id));
+
+  const toggleSelect = (id: number) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const handleBatchApprove = () => {
+    if (selectedEligible.length === 0) return;
+    const ok = window.confirm(
+      `Phê duyệt ${selectedEligible.length} hồ sơ đã chọn?\n\nMẫu tin thuộc nhóm dịch tự động sẽ chuyển sang bước hiệu đính bản tiếng Anh, chưa công bố ngay.`
+    );
+    if (!ok) return;
+    selectedEligible.forEach((sub) => onApproveSubmission(sub.id, 'Phê duyệt hàng loạt'));
+    setSelectedIds([]);
+  };
+
+  const openSubmission = (id: number) => {
+    setSelectedSubId(id);
+    setPanelOpenMobile(true);
+    setShowDiff(false);
+  };
+
   const inboxColumns: ColumnDef<Submission>[] = [
+    {
+      key: 'select',
+      headerVi: '☑',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(row.id)}
+          disabled={!canBatchApprove(row)}
+          onChange={() => toggleSelect(row.id)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Chọn hồ sơ ${row.submissionNo}`}
+          title={
+            canBatchApprove(row)
+              ? 'Chọn để duyệt hàng loạt'
+              : 'Chỉ chọn được hồ sơ đã soát xét và không do chính mình lập'
+          }
+          className="h-4 w-4 accent-indigo-600 disabled:opacity-30"
+        />
+      ),
+    },
     {
       key: 'submissionNo',
       headerVi: 'Mã Hồ sơ / Tiêu đề Công bố',
@@ -190,7 +257,7 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
       headerVi: 'Thao tác',
       render: (row) => (
         <button
-          onClick={() => setSelectedSubId(row.id)}
+          onClick={() => openSubmission(row.id)}
           className={`px-3 py-1 text-xs font-bold rounded-sm uppercase tracking-wider shadow-xs cursor-pointer ${
             selectedSubId === row.id
               ? 'bg-indigo-800 text-white ring-2 ring-indigo-400'
@@ -334,14 +401,68 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
               )}
             </div>
 
-            <DynamicTable data={filteredSubmissions} columns={inboxColumns} />
+            {/* Thanh duyệt hàng loạt — hiện khi đã chọn ít nhất 1 hồ sơ */}
+            {selectedEligible.length > 0 && (
+              <div className="sticky top-16 z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-indigo-600 text-white rounded-sm shadow-md">
+                <span className="text-xs font-bold">
+                  Đã chọn {selectedEligible.length}/{batchEligible.length} hồ sơ duyệt được
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-400 rounded-sm text-xs font-semibold cursor-pointer"
+                  >
+                    Bỏ chọn
+                  </button>
+                  <button
+                    onClick={handleBatchApprove}
+                    className="px-3 py-1.5 bg-white text-indigo-700 hover:bg-indigo-50 rounded-sm text-xs font-bold uppercase tracking-wider cursor-pointer"
+                  >
+                    Duyệt {selectedEligible.length} hồ sơ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {batchEligible.length > 0 && selectedEligible.length === 0 && (
+              <button
+                onClick={() => setSelectedIds(batchEligible.map((s) => s.id))}
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer self-start"
+              >
+                Chọn tất cả {batchEligible.length} hồ sơ đã soát xét
+              </button>
+            )}
+
+            <DynamicTable
+              data={filteredSubmissions}
+              columns={inboxColumns}
+              onRowActivate={(row) => openSubmission(row.id)}
+            />
           </div>
 
-          {/* Workflow Review Side Panel */}
-          <div className="bg-white border border-slate-200 rounded-sm p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
-              Chi tiết Phê duyệt Hồ sơ (Workflow Action Bar)
-            </h3>
+          {/*
+            Panel duyệt. Dưới lg là bottom sheet cố định — lãnh đạo P.TTTT duyệt
+            trên điện thoại không phải cuộn xuống cuối trang mới thấy nút duyệt.
+          */}
+          <div
+            className={`bg-white border border-slate-200 shadow-xs space-y-4 p-4 sm:p-6 ${
+              panelOpenMobile
+                ? 'fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto rounded-t-2xl shadow-2xl'
+                : 'hidden'
+            } lg:static lg:block lg:max-h-none lg:overflow-visible lg:rounded-sm lg:shadow-xs lg:z-auto`}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Chi tiết Phê duyệt Hồ sơ
+              </h3>
+              <button
+                onClick={() => setPanelOpenMobile(false)}
+                aria-label="Đóng panel duyệt"
+                className="lg:hidden p-1 text-slate-500 hover:text-slate-900"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
             {selectedSub ? (
               <div className="space-y-4">
@@ -355,6 +476,89 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Xem nhanh khác biệt giữa bản gốc và bản đính chính */}
+                {originalSub && (
+                  <div className="border border-amber-200 bg-amber-50/60 rounded-sm p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                          Hồ sơ đính chính
+                        </h4>
+                        <p className="text-[11px] text-slate-600">
+                          Bản gốc:{' '}
+                          <span className="font-mono">{originalSub.submissionNo}</span>
+                          {selectedSub.correctionType === 'MATERIAL_CORRECTION'
+                            ? ' · Đính chính nội dung trọng yếu'
+                            : ' · Sửa lỗi nhỏ'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowDiff((v) => !v)}
+                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-sm text-[11px] font-bold uppercase tracking-wider shrink-0 cursor-pointer"
+                      >
+                        {showDiff ? 'Ẩn khác biệt' : 'Xem khác biệt'}
+                      </button>
+                    </div>
+
+                    {showDiff && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 text-[10px] text-slate-600">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-block w-3 h-3 bg-rose-100 border border-rose-300" />
+                            Bản gốc bỏ đi
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="inline-block w-3 h-3 bg-emerald-100 border border-emerald-300" />
+                            Bản sửa thêm vào
+                          </span>
+                        </div>
+
+                        {[
+                          {
+                            label: 'Tiêu đề',
+                            a: originalSub.titleVi,
+                            b: selectedSub.titleVi,
+                          },
+                          {
+                            label: 'Nội dung',
+                            a: String(originalSub.payload?.summary_note || ''),
+                            b: String(selectedSub.payload?.summary_note || ''),
+                          },
+                        ].map(({ label, a, b }) => {
+                          const tokens = diffWords(a, b);
+                          return (
+                            <div key={label} className="space-y-1">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                {label}
+                              </div>
+                              <p className="p-2 bg-white border border-slate-200 rounded-sm text-[11px] leading-relaxed">
+                                {!hasChanges(tokens) ? (
+                                  <span className="text-slate-500 italic">Không thay đổi</span>
+                                ) : (
+                                  tokens.map((tok, i) => (
+                                    <span
+                                      key={i}
+                                      className={
+                                        tok.type === 'removed'
+                                          ? 'bg-rose-100 text-rose-800 line-through'
+                                          : tok.type === 'added'
+                                            ? 'bg-emerald-100 text-emerald-900 font-semibold'
+                                            : 'text-slate-700'
+                                      }
+                                    >
+                                      {tok.text}
+                                    </span>
+                                  ))
+                                )}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Hiệu đính bản dịch EN — một vòng đời, công bố VI + EN cùng lúc */}
                 {isProofreadStage && (

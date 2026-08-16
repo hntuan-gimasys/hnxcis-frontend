@@ -77,7 +77,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 pb-16">
       {/* Hero Search Section */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white py-10 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white py-6 sm:py-10 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
         <div className="max-w-6xl mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -128,7 +128,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-10">
         {selectedOrg ? (
           /* Detailed Company View */
           <div className="space-y-6">
@@ -143,22 +143,22 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-extrabold text-sm rounded-lg border border-blue-200">
                       {selectedOrg.shortName}
                     </span>
-                    <h2 className="text-xl font-bold text-slate-900">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                       {lang === 'vi' ? selectedOrg.nameVi : selectedOrg.nameEn || selectedOrg.nameVi}
                     </h2>
                   </div>
-                  <div className="text-xs text-slate-500 mt-1 space-x-3">
+                  <div className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span>Mã số thuế: <strong>{selectedOrg.taxCode}</strong></span>
-                    <span>•</span>
+                    <span className="hidden sm:inline">•</span>
                     <span>Đại diện CBTT: <strong>{selectedOrg.disclosureRepName}</strong></span>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status="NORMAL" type="security" />
                   <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">
                     ✓ Ký quỹ: Đủ điều kiện
@@ -267,6 +267,8 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                   <option value="EXTRAORDINARY">Tin Bất thường (24h/48h)</option>
                   <option value="BOND">Tin Trái phiếu</option>
                   <option value="TRADING">Tin Giao dịch NNB/CĐL</option>
+                  <option value="OFFERING">Tin Chào bán / Phát hành</option>
+                  <option value="ON_DEMAND">Tin theo yêu cầu</option>
                   <option value="HNX_NEWS">Tin từ Sở HNX</option>
                 </select>
               </div>
@@ -295,13 +297,11 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                           onClick={() => setSelectedOrg(org)}
                           className="w-full text-left p-3 rounded-xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition-all flex items-center justify-between group"
                         >
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <div className="font-bold text-xs text-slate-900 group-hover:text-blue-700">
                               {org.shortName}
                             </div>
-                            <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
-                              {org.nameVi}
-                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">{org.nameVi}</div>
                           </div>
                           {sec && (
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-bold text-[10px] rounded-md">

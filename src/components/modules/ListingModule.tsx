@@ -405,6 +405,8 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
           title="Danh sách Hồ sơ Cổ phiếu Niêm yết & ĐKGD"
           columns={equityColumns}
           data={equityProfiles}
+          density="compact"
+          onRowActivate={(row) => onAuditHistory('EQUITY_PROFILE', row.id, row.equityName)}
           onExportExcel={() => alert('Đã xuất danh sách Cổ phiếu (.xlsx) giữ nguyên định dạng!')}
           actions={(row) => (
             <button
@@ -434,6 +436,8 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
             <DynamicTable
               columns={dossierColumns}
               data={dossiers || []}
+              density="compact"
+              onRowActivate={(row) => setSelectedDossierId(row.id)}
               searchPlaceholder="Tìm theo số hồ sơ, mã CK, doanh nghiệp..."
               onExportExcel={() => alert('Đã xuất danh sách Hồ sơ ĐKGD (.xlsx)!')}
               actions={(row) => (
@@ -631,6 +635,14 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
             <DynamicTable
               columns={surveillanceColumns}
               data={filteredSurvRecords}
+              density="compact"
+              onRowActivate={(row) =>
+                onAuditHistory(
+                  'SURVEILLANCE_RECORD',
+                  row.id,
+                  `${securities.find((sec) => sec.id === row.securityId)?.symbol || ''} - ${row.decisionRef}`
+                )
+              }
               searchPlaceholder="Tìm theo mã CK, lý do, số quyết định..."
               onExportExcel={() =>
                 alert('Đã xuất Danh sách kiểm soát niêm yết (.xlsx) giữ nguyên định dạng!')

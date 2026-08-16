@@ -12,6 +12,7 @@ import {
   Building,
   Newspaper,
   ChevronDown,
+  Menu,
 } from 'lucide-react';
 import { UserAccount, NotificationItem } from '../../types/hnx';
 import { getRoleLabel } from '../../data/roleCatalog';
@@ -25,6 +26,8 @@ interface HeaderProps {
   notifications: NotificationItem[];
   lang: 'vi' | 'en';
   setLang: (lang: 'vi' | 'en') => void;
+  /** Mở drawer menu trên mobile; ẩn ở cổng công khai vì không có sidebar. */
+  onOpenMenu?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -36,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   notifications,
   lang,
   setLang,
+  onOpenMenu,
 }) => {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -48,6 +52,15 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Geometric Balance Logo & Title */}
           <div className="flex items-center space-x-3">
+            {onOpenMenu && activePortal !== 'public' && (
+              <button
+                onClick={onOpenMenu}
+                aria-label="Mở menu chức năng"
+                className="md:hidden p-2 -ml-2 rounded-sm text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             <div className="w-9 h-9 bg-indigo-600 rounded-sm flex items-center justify-center shrink-0 shadow-sm">
               <div className="w-4 h-4 border-2 border-white rotate-45"></div>
             </div>

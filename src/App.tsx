@@ -50,6 +50,7 @@ export default function App() {
   const [activePortal, setActivePortal] = useState<'internal' | 'corporate' | 'public'>('internal');
   const [activeModule, setActiveModule] = useState<string>('dashboard');
   const [lang, setLang] = useState<'vi' | 'en'>('vi');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Personas
   const [users] = useState<UserAccount[]>(INITIAL_USERS);
@@ -449,6 +450,7 @@ export default function App() {
         notifications={allNotifications}
         lang={lang}
         setLang={setLang}
+        onOpenMenu={() => setSidebarOpen(true)}
       />
 
       {/* Main Container */}
@@ -459,6 +461,8 @@ export default function App() {
           setActiveModule={setActiveModule}
           userRole={currentUser.roleCode}
           activePortal={activePortal}
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
         />
 
         {/* Content View */}

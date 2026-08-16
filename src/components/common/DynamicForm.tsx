@@ -99,7 +99,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
       {(errors || []).length > 0 && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          <div className="font-semibold mb-2">Vui lòng kiểm tra lại các trường thông tin:</div>
+          <div className="font-semibold mb-2">
+            Hồ sơ chưa nộp được. Vui lòng sửa {errors.length} chỗ dưới đây rồi bấm nộp lại:
+          </div>
           <ul className="list-disc pl-5 space-y-1">
             {(errors || []).map((err, idx) => (
               <li key={idx}>{err.message}</li>

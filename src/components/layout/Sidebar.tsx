@@ -20,6 +20,7 @@ import {
   CreditCard,
   CalendarDays,
   FileText,
+  X,
 } from 'lucide-react';
 import { UserRoleCode } from '../../types/hnx';
 
@@ -28,6 +29,9 @@ interface SidebarProps {
   setActiveModule: (module: string) => void;
   userRole: UserRoleCode;
   activePortal: 'internal' | 'corporate' | 'public';
+  /** Drawer trên mobile: dưới md sidebar không nằm trong luồng trang. */
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -35,24 +39,66 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setActiveModule,
   userRole,
   activePortal,
+  mobileOpen = false,
+  onCloseMobile,
 }) => {
   if (activePortal === 'public') {
     return null;
   }
 
+  /**
+   * Chọn menu xong thì đóng drawer, nếu không người dùng mobile phải tự đóng mới
+   * thấy được nội dung vừa chọn.
+   */
+  const pickModule = (moduleCode: string) => {
+    setActiveModule(moduleCode);
+    onCloseMobile?.();
+  };
+
+  /**
+   * Dưới md: drawer trượt từ trái, có lớp phủ. Từ md trở lên: cột tĩnh như cũ.
+   * Trước đây sidebar để `hidden md:block` nên trên điện thoại không có menu
+   * module nào — lãnh đạo P.TTTT không thể vào hàng đợi duyệt tin bằng điện thoại.
+   */
+  const asideClass = [
+    'w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0',
+    'fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200',
+    mobileOpen ? 'translate-x-0' : '-translate-x-full',
+    'md:static md:translate-x-0 md:z-auto md:overflow-visible',
+  ].join(' ');
+
+  const backdrop = mobileOpen ? (
+    <div
+      onClick={onCloseMobile}
+      className="fixed inset-0 bg-slate-900/60 z-40 md:hidden"
+      aria-hidden="true"
+    />
+  ) : null;
+
   if (activePortal === 'corporate') {
     return (
-      <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 hidden md:block">
-        <div className="p-4 border-b border-slate-800">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            ICDS — Tiếp nhận Tin Công bố
+      <>
+      {backdrop}
+      <aside className={asideClass}>
+        <div className="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              ICDS — Tiếp nhận Tin Công bố
+            </div>
+            <div className="text-sm font-bold text-white mt-1">Vinamilk (VNM)</div>
           </div>
-          <div className="text-sm font-bold text-white mt-1">Vinamilk (VNM)</div>
+          <button
+            onClick={onCloseMobile}
+            aria-label="Đóng menu"
+            className="md:hidden p-1 text-slate-400 hover:text-white shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <nav className="p-3 space-y-1.5 text-xs">
           <button
-            onClick={() => setActiveModule('corp_dashboard')}
+            onClick={() => pickModule('corp_dashboard')}
             className={`w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-sm font-bold tracking-wider text-[11px] uppercase transition-all ${
               activeModule === 'corp_dashboard'
                 ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -64,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveModule('corp_filing')}
+            onClick={() => pickModule('corp_filing')}
             className={`w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-sm font-bold tracking-wider text-[11px] uppercase transition-all ${
               activeModule === 'corp_filing'
                 ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -76,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveModule('corp_history')}
+            onClick={() => pickModule('corp_history')}
             className={`w-full flex items-center space-x-2.5 px-3 py-2.5 rounded-sm font-bold tracking-wider text-[11px] uppercase transition-all ${
               activeModule === 'corp_history'
                 ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -88,6 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </nav>
       </aside>
+      </>
     );
   }
 
@@ -103,12 +150,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const canSeeAdmin = isSysAdmin || isCNTTManager;
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 hidden md:block">
-      <div className="p-4 border-b border-slate-800">
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          IMS — Quản lý &amp; Khai thác thông tin
+    <>
+    {backdrop}
+    <aside className={asideClass}>
+      <div className="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            IMS — Quản lý &amp; Khai thác thông tin
+          </div>
+          <div className="text-sm font-bold text-white mt-1">Cổng Nội bộ HNX</div>
         </div>
-        <div className="text-sm font-bold text-white mt-1">Cổng Nội bộ HNX</div>
+        <button
+          onClick={onCloseMobile}
+          aria-label="Đóng menu"
+          className="md:hidden p-1 text-slate-400 hover:text-white shrink-0"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <nav className="p-3 space-y-6 text-xs overflow-y-auto max-h-[calc(100vh-5rem)]">
@@ -119,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <button
-            onClick={() => setActiveModule('dashboard')}
+            onClick={() => pickModule('dashboard')}
             className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold tracking-wide transition-all ${
               activeModule === 'dashboard'
                 ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -131,7 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           <button
-            onClick={() => setActiveModule('ai_center')}
+            onClick={() => pickModule('ai_center')}
             className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold tracking-wide transition-all ${
               activeModule === 'ai_center'
                 ? 'bg-purple-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -151,7 +209,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <button
-              onClick={() => setActiveModule('qlny_equities')}
+              onClick={() => pickModule('qlny_equities')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_equities'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -163,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('qlny_dossiers')}
+              onClick={() => pickModule('qlny_dossiers')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_dossiers'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -175,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('qlny_status_control')}
+              onClick={() => pickModule('qlny_status_control')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_status_control'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -187,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('qlny_delisting')}
+              onClick={() => pickModule('qlny_delisting')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_delisting'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -199,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('qlny_fees')}
+              onClick={() => pickModule('qlny_fees')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_fees'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -211,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('qlny_corp_actions')}
+              onClick={() => pickModule('qlny_corp_actions')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_corp_actions'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -232,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <button
-              onClick={() => setActiveModule('tttp_bonds')}
+              onClick={() => pickModule('tttp_bonds')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'tttp_bonds'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -244,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('tttp_green_bonds')}
+              onClick={() => pickModule('tttp_green_bonds')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'tttp_green_bonds'
                   ? 'bg-emerald-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -265,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <button
-              onClick={() => setActiveModule('tttt_inbox')}
+              onClick={() => pickModule('tttt_inbox')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'tttt_inbox'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -277,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('tttt_violations')}
+              onClick={() => pickModule('tttt_violations')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'tttt_violations'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -289,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('tttt_display_config')}
+              onClick={() => pickModule('tttt_display_config')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'tttt_display_config'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -310,7 +368,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <button
-              onClick={() => setActiveModule('admin_system')}
+              onClick={() => pickModule('admin_system')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'admin_system'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -322,7 +380,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('admin_templates')}
+              onClick={() => pickModule('admin_templates')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'admin_templates'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -334,7 +392,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveModule('admin_users')}
+              onClick={() => pickModule('admin_users')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'admin_users'
                   ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
@@ -348,6 +406,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </nav>
     </aside>
+    </>
   );
 };
 
