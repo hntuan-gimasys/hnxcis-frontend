@@ -145,6 +145,47 @@ export interface SecurityItem extends BaseEntity {
 }
 
 /**
+ * Trạng thái hồ sơ đăng ký giao dịch (FR-004 → FR-006). Quyết định biểu mẫu nào
+ * được phép kết xuất — xem mapping tại `src/data/dossierForms.ts`.
+ */
+export type DossierStatus =
+  /** Đã tiếp nhận, chuyên viên đang kiểm tra tính đầy đủ / hợp lệ. */
+  | 'RECEIVED'
+  /** Luồng yêu cầu bổ sung: hồ sơ chưa đầy đủ và/hoặc chưa hợp lệ. */
+  | 'NEED_SUPPLEMENT'
+  /** Hết 60 ngày mà hồ sơ chưa hoàn thiện. */
+  | 'STOPPED'
+  /** Luồng chấp thuận đăng ký giao dịch. */
+  | 'APPROVAL'
+  /** Luồng xác định ngày giao dịch đầu tiên & giá tham chiếu. */
+  | 'FIRST_TRADING'
+  | 'COMPLETED';
+
+/** Hồ sơ đăng ký giao dịch cổ phiếu (FR-004 → FR-006). */
+export interface RegistrationDossier extends BaseEntity {
+  dossierNo: string;
+  organizationId: number;
+  symbol: string;
+  /** Số lượng cổ phiếu đăng ký giao dịch. */
+  registeredQuantity: number;
+  board: BoardType;
+  status: DossierStatus;
+  receivedDate: string;
+  /**
+   * Guard trình duyệt của Mẫu 06 (FR-006 AC-006-1): chưa xác nhận thanh toán phí
+   * thì nút "Trình duyệt" bị vô hiệu.
+   */
+  feePaymentStatus: 'PENDING' | 'CONFIRMED';
+  feeAmount: number;
+  feeConfirmedAt?: string;
+  feeConfirmedBy?: string;
+  firstTradingDate?: string;
+  referencePrice?: number;
+  /** Ghi chú của chuyên viên thẩm định, hiện trên panel chi tiết. */
+  appraisalNote?: string;
+}
+
+/**
  * Bản ghi diện giám sát (FR-008, PRD v1.2 §5.2.8.b — bảng `surveillance_status`).
  * Mỗi lần đưa một mã CK vào/ra một diện là MỘT bản ghi có ngày bắt đầu, ngày kết
  * thúc, lý do và số quyết định — không phải một trường trạng thái trên hồ sơ CK.

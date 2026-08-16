@@ -163,6 +163,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveModule('qlny_dossiers')}
+              className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
+                activeModule === 'qlny_dossiers'
+                  ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
+                  : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>Hồ sơ ĐKGD &amp; Mẫu 01–06 (FR-006)</span>
+            </button>
+
+            <button
               onClick={() => setActiveModule('qlny_status_control')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'qlny_status_control'

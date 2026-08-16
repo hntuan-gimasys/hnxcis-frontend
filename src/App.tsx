@@ -12,6 +12,7 @@ import {
   INITIAL_SUBMISSIONS,
   INITIAL_ALERTS,
   INITIAL_SURVEILLANCE_RECORDS,
+  INITIAL_DOSSIERS,
   INITIAL_OBLIGATIONS,
   INITIAL_USERS,
   INITIAL_TEMPLATES,
@@ -26,6 +27,7 @@ import {
   NotificationItem,
   Alert,
   SurveillanceRecord,
+  RegistrationDossier,
   TemplateDefinition,
   FeeRecord,
 } from './types/hnx';
@@ -60,6 +62,7 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Submission[]>(INITIAL_SUBMISSIONS);
   const [alerts] = useState<Alert[]>(INITIAL_ALERTS);
   const [surveillanceRecords] = useState<SurveillanceRecord[]>(INITIAL_SURVEILLANCE_RECORDS);
+  const [dossiers, setDossiers] = useState<RegistrationDossier[]>(INITIAL_DOSSIERS);
   const [obligations] = useState(INITIAL_OBLIGATIONS);
   const [templates, setTemplates] = useState<TemplateDefinition[]>(INITIAL_TEMPLATES);
   const [tasks] = useState([]);
@@ -220,6 +223,55 @@ export default function App() {
     alert('Đã gỡ tin khỏi chuyên trang Công bố Thông tin công khai.');
   };
 
+  /**
+   * Xác nhận đã thanh toán phí ĐKGD — mở guard trình duyệt của Mẫu 06
+   * (FR-006 AC-006-2: ghi audit log ai xác nhận lúc nào).
+   */
+  const handleConfirmDossierFee = (dossierId: number) => {
+    const dossier = dossiers.find((d) => d.id === dossierId);
+    if (!dossier || dossier.feePaymentStatus === 'CONFIRMED') return;
+
+    const now = new Date().toISOString();
+    setDossiers((prev) =>
+      prev.map((d) =>
+        d.id === dossierId
+          ? {
+              ...d,
+              feePaymentStatus: 'CONFIRMED',
+              feeConfirmedAt: now,
+              feeConfirmedBy: currentUser.fullName,
+              updatedAt: now,
+              updatedBy: currentUser.id,
+            }
+          : d
+      )
+    );
+
+    setAuditLogs((prev) => [
+      {
+        id: prev.reduce((max, l) => Math.max(max, l.id), 0) + 1,
+        occurredAt: now,
+        actorId: currentUser.id,
+        actorName: currentUser.fullName,
+        actorRole: currentUser.roleCode,
+        actorIp: '127.0.0.1',
+        correlationId: `req-${Date.now()}`,
+        entityType: 'REGISTRATION_DOSSIER',
+        entityId: dossier.id,
+        entityLabel: dossier.dossierNo,
+        action: 'UPDATE',
+        beforeJson: { feePaymentStatus: 'PENDING' },
+        afterJson: { feePaymentStatus: 'CONFIRMED' },
+        diffJson: { feePaymentStatus: 'PENDING -> CONFIRMED' },
+        reason: 'Xác nhận doanh nghiệp đã thanh toán phí đăng ký giao dịch',
+        result: 'SUCCESS',
+      },
+      ...prev,
+    ]);
+
+    alert('Đã cập nhật "Đã thanh toán phí". Nút Trình duyệt đã được mở.');
+  };
+
   const handleOpenAuditHistory = (type: string, id: number, label: string) => {
     const filtered = (auditLogs || []).filter(
       (log) => log.entityType === type && log.entityId === id
@@ -322,9 +374,11 @@ export default function App() {
                   bondProfiles={bondProfiles}
                   alerts={alerts}
                   surveillanceRecords={surveillanceRecords}
+                  dossiers={dossiers}
                   fees={fees}
                   userRole={currentUser.roleCode}
                   onAuditHistory={handleOpenAuditHistory}
+                  onConfirmDossierFee={handleConfirmDossierFee}
                 />
               )}
 

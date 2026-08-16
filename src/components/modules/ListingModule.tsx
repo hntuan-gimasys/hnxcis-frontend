@@ -10,6 +10,9 @@ import {
   ShieldAlert,
   CreditCard,
   CalendarDays,
+  FileText,
+  FileDown,
+  Lock,
   Plus,
 } from 'lucide-react';
 import {
@@ -19,9 +22,19 @@ import {
   BondProfile,
   Alert,
   SurveillanceRecord,
+  RegistrationDossier,
   FeeRecord,
   UserRoleCode,
 } from '../../types/hnx';
+import {
+  DOSSIER_FORMS,
+  DOSSIER_STATUS_LABEL,
+  DOSSIER_STATUS_STYLE,
+  DOSSIER_DEADLINE_DAYS,
+  getAvailableForms,
+  getDaysSinceReceived,
+  getSubmitBlockReason,
+} from '../../data/dossierForms';
 import { StatusBadge } from '../common/StatusBadge';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
 
@@ -33,6 +46,7 @@ import { DynamicTable, ColumnDef } from '../common/DynamicTable';
  */
 const MODULE_TO_TAB: Record<string, string> = {
   qlny_equities: 'equities',
+  qlny_dossiers: 'dossiers',
   qlny_status_control: 'status_control',
   qlny_delisting: 'delisting',
   qlny_fees: 'fees',
@@ -41,6 +55,7 @@ const MODULE_TO_TAB: Record<string, string> = {
 
 const TAB_TO_MODULE: Record<string, string> = {
   equities: 'qlny_equities',
+  dossiers: 'qlny_dossiers',
   status_control: 'qlny_status_control',
   delisting: 'qlny_delisting',
   fees: 'qlny_fees',
@@ -56,9 +71,12 @@ interface ListingModuleProps {
   bondProfiles: BondProfile[];
   alerts: Alert[];
   surveillanceRecords: SurveillanceRecord[];
+  dossiers: RegistrationDossier[];
   fees: FeeRecord[];
   userRole: UserRoleCode;
   onAuditHistory: (type: string, id: number, label: string) => void;
+  /** Xác nhận đã thanh toán phí — mở guard trình duyệt (FR-006 AC-006-2). */
+  onConfirmDossierFee: (dossierId: number) => void;
 }
 
 export const ListingModule: React.FC<ListingModuleProps> = ({
@@ -70,15 +88,99 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
   bondProfiles,
   alerts,
   surveillanceRecords,
+  dossiers,
   fees,
   userRole,
   onAuditHistory,
+  onConfirmDossierFee,
 }) => {
   const subTab = MODULE_TO_TAB[activeModule] || 'equities';
   const setSubTab = (tab: string) => onChangeModule(TAB_TO_MODULE[tab] || 'qlny_equities');
 
   /** Diện đang áp dụng = chưa có ngày ra (PRD §5.2.8.b, idx_surv_open). */
   const [survFilter, setSurvFilter] = useState<'OPEN' | 'ALL'>('OPEN');
+
+  const [selectedDossierId, setSelectedDossierId] = useState<number | null>(
+    () => dossiers?.[0]?.id ?? null
+  );
+
+  // Giữ id thay vì cả object: sau khi xác nhận phí, mảng dossiers được thay bằng
+  // object mới nên panel bên phải phải đọc lại từ nguồn để không hiện bản cũ.
+  const selectedDossier = useMemo(
+    () => (dossiers || []).find((d) => d.id === selectedDossierId) || null,
+    [dossiers, selectedDossierId]
+  );
+
+  const dossierColumns: ColumnDef<RegistrationDossier>[] = [
+    {
+      key: 'dossierNo',
+      headerVi: 'Số hồ sơ / Mã CK',
+      render: (row) => {
+        const org = organizations.find((o) => o.id === row.organizationId);
+        return (
+          <div className="space-y-0.5">
+            <div className="font-mono text-[11px] font-bold text-slate-800">{row.dossierNo}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-indigo-700 text-sm font-mono">{row.symbol}</span>
+              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-xs text-[10px] font-bold">
+                {row.board}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-600">{org?.nameVi || '-'}</div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'registeredQuantity',
+      headerVi: 'SL đăng ký (CP)',
+      render: (row) => (
+        <span className="font-mono text-xs">{row.registeredQuantity.toLocaleString('vi-VN')}</span>
+      ),
+    },
+    {
+      key: 'status',
+      headerVi: 'Trạng thái hồ sơ',
+      render: (row) => (
+        <span
+          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${DOSSIER_STATUS_STYLE[row.status]}`}
+        >
+          {DOSSIER_STATUS_LABEL[row.status]}
+        </span>
+      ),
+    },
+    {
+      key: 'receivedDate',
+      headerVi: 'Ngày tiếp nhận / Số ngày',
+      render: (row) => {
+        const days = getDaysSinceReceived(row);
+        const overDeadline = days > DOSSIER_DEADLINE_DAYS && row.status !== 'COMPLETED';
+        return (
+          <div className="font-mono text-xs">
+            <div className="font-bold text-slate-800">{row.receivedDate}</div>
+            <div className={overDeadline ? 'text-rose-600 font-bold' : 'text-slate-500'}>
+              {days} ngày{overDeadline ? ` (quá ${DOSSIER_DEADLINE_DAYS} ngày)` : ''}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'feePaymentStatus',
+      headerVi: 'Thanh toán phí',
+      render: (row) => (
+        <span
+          className={`px-2 py-0.5 rounded-xs text-xs font-bold uppercase tracking-wider border ${
+            row.feePaymentStatus === 'CONFIRMED'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}
+        >
+          {row.feePaymentStatus === 'CONFIRMED' ? '✓ Đã thanh toán phí' : '✕ Chưa thanh toán phí'}
+        </span>
+      ),
+    },
+  ];
 
   const openSurvCount = useMemo(
     () => (surveillanceRecords || []).filter((r) => !r.endDate).length,
@@ -243,6 +345,16 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
         </button>
 
         <button
+          onClick={() => setSubTab('dossiers')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 ${
+            subTab === 'dossiers' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          }`}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          <span>Hồ sơ ĐKGD &amp; Mẫu 01–06 (FR-006)</span>
+        </button>
+
+        <button
           onClick={() => setSubTab('status_control')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 ${
             subTab === 'status_control'
@@ -303,6 +415,176 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
             </button>
           )}
         />
+      )}
+
+      {subTab === 'dossiers' && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Danh sách hồ sơ ĐKGD */}
+          <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
+                Hồ sơ Đăng ký Giao dịch Cổ phiếu (FR-004 → FR-006)
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Biểu mẫu kết xuất được xác định theo trạng thái hồ sơ. Riêng Mẫu số 06 chỉ trình
+                duyệt được sau khi cập nhật "Đã thanh toán phí".
+              </p>
+            </div>
+
+            <DynamicTable
+              columns={dossierColumns}
+              data={dossiers || []}
+              searchPlaceholder="Tìm theo số hồ sơ, mã CK, doanh nghiệp..."
+              onExportExcel={() => alert('Đã xuất danh sách Hồ sơ ĐKGD (.xlsx)!')}
+              actions={(row) => (
+                <button
+                  onClick={() => setSelectedDossierId(row.id)}
+                  className={`px-3 py-1 text-xs font-bold rounded-sm uppercase tracking-wider shadow-xs cursor-pointer ${
+                    selectedDossierId === row.id
+                      ? 'bg-indigo-800 text-white ring-2 ring-indigo-400'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
+                >
+                  Xử lý
+                </button>
+              )}
+            />
+          </div>
+
+          {/* Panel kết xuất biểu mẫu theo trạng thái */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
+              Kết xuất Biểu mẫu &amp; Trình duyệt
+            </h3>
+
+            {!selectedDossier ? (
+              <div className="py-12 text-center text-xs text-slate-500">
+                Vui lòng chọn một hồ sơ từ danh sách bên trái.
+              </div>
+            ) : (
+              (() => {
+                const availableForms = getAvailableForms(selectedDossier.status);
+                const blockReason = getSubmitBlockReason(selectedDossier);
+                const daysElapsed = getDaysSinceReceived(selectedDossier);
+                const overDeadline =
+                  daysElapsed > DOSSIER_DEADLINE_DAYS && selectedDossier.status !== 'COMPLETED';
+
+                return (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-sm space-y-1 text-xs">
+                      <div className="font-mono text-slate-500">{selectedDossier.dossierNo}</div>
+                      <div className="font-bold text-slate-900">
+                        {selectedDossier.symbol} —{' '}
+                        {selectedDossier.registeredQuantity.toLocaleString('vi-VN')} CP
+                      </div>
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium border ${DOSSIER_STATUS_STYLE[selectedDossier.status]}`}
+                      >
+                        {DOSSIER_STATUS_LABEL[selectedDossier.status]}
+                      </span>
+                      {selectedDossier.appraisalNote && (
+                        <p className="text-slate-600 pt-1">{selectedDossier.appraisalNote}</p>
+                      )}
+                    </div>
+
+                    {overDeadline && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-sm text-[11px] text-rose-800">
+                        Hồ sơ đã quá {DOSSIER_DEADLINE_DAYS} ngày kể từ ngày tiếp nhận (
+                        {daysElapsed} ngày) — căn cứ phát hành{' '}
+                        <span className="font-semibold">Mẫu số 02</span>.
+                      </div>
+                    )}
+
+                    {/* Khối phí — điều kiện mở nút trình duyệt */}
+                    <div className="p-3 border border-slate-200 rounded-sm space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">Phí ĐKGD</span>
+                        <span className="font-mono font-bold text-blue-700">
+                          {selectedDossier.feeAmount.toLocaleString('vi-VN')} VND
+                        </span>
+                      </div>
+
+                      {selectedDossier.feePaymentStatus === 'CONFIRMED' ? (
+                        <div className="text-[11px] text-emerald-700">
+                          ✓ Đã thanh toán phí — xác nhận bởi {selectedDossier.feeConfirmedBy} ngày{' '}
+                          {selectedDossier.feeConfirmedAt
+                            ? new Date(selectedDossier.feeConfirmedAt).toLocaleDateString('vi-VN')
+                            : '-'}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => onConfirmDossierFee(selectedDossier.id)}
+                          className="w-full px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-sm text-xs font-bold uppercase tracking-wider shadow-xs cursor-pointer"
+                        >
+                          Cập nhật "Đã thanh toán phí"
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Mẫu 01–06 hợp lệ với trạng thái hiện tại */}
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                        Biểu mẫu kết xuất được ({availableForms.length}/{DOSSIER_FORMS.length})
+                      </div>
+
+                      {availableForms.length === 0 ? (
+                        <p className="text-[11px] text-slate-500 py-2">
+                          Trạng thái hiện tại chưa phát sinh biểu mẫu nào cần kết xuất.
+                        </p>
+                      ) : (
+                        availableForms.map((form) => (
+                          <div
+                            key={form.code}
+                            className="p-2.5 border border-slate-200 rounded-sm space-y-1.5"
+                          >
+                            <div className="text-[11px] font-bold text-slate-900">{form.code}</div>
+                            <p className="text-[11px] text-slate-600">{form.nameVi}</p>
+                            <button
+                              onClick={() =>
+                                alert(
+                                  `Kết xuất ${form.code} cho hồ sơ ${selectedDossier.dossierNo} (.docx)`
+                                )
+                              }
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-sm text-[11px] font-semibold cursor-pointer"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                              <span>Kết xuất &amp; in bản cứng</span>
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Guard trình duyệt (AC-006-1) */}
+                    <div className="pt-2 border-t border-slate-100 space-y-2">
+                      <button
+                        disabled={Boolean(blockReason)}
+                        title={blockReason || 'Trình Lãnh đạo Sở phê duyệt hồ sơ'}
+                        onClick={() =>
+                          alert(`Đã trình duyệt hồ sơ ${selectedDossier.dossierNo} lên Lãnh đạo Sở.`)
+                        }
+                        className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-wider shadow-xs ${
+                          blockReason
+                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                        }`}
+                      >
+                        {blockReason && <Lock className="h-3.5 w-3.5" />}
+                        <span>Trình duyệt</span>
+                      </button>
+
+                      {blockReason && (
+                        <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-sm p-2">
+                          {blockReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        </div>
       )}
 
       {subTab === 'status_control' && (
