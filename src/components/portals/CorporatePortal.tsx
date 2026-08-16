@@ -3,20 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import {
-  AlertTriangle,
-  FileCheck,
-  Clock,
-  Send,
-  Plus,
-  AlertCircle,
-  XCircle,
-  FileSpreadsheet,
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { AlertTriangle, Plus, FileSpreadsheet } from 'lucide-react';
 import {
   Organization,
   Submission,
+  SecurityItem,
   DisclosureObligation,
   TemplateDefinition,
   TemplateField,
@@ -28,11 +20,30 @@ import {
 import {
   INITIAL_ORGANIZATIONS,
   INITIAL_TEMPLATES,
+  INITIAL_SECURITIES,
   getTemplateFields,
 } from '../../data/mockData';
 import { StatusBadge } from '../common/StatusBadge';
 import { DynamicForm } from '../common/DynamicForm';
+import {
+  DashboardFilterBar,
+  DashboardFilters,
+  DEFAULT_DASHBOARD_FILTERS,
+} from '../common/DashboardFilterBar';
+import { DrillDownGrid, DrillDownColumn } from '../common/DrillDownGrid';
+import { exportToCsv } from '../../lib/exportCsv';
 import { notificationService } from '../../services/notificationService';
+
+/** Bốn loại báo cáo định kỳ của widget "Tình trạng Báo cáo định kỳ" (FR-027). */
+const PERIODIC_REPORT_TYPES: Array<{
+  code: NonNullable<DisclosureObligation['reportTypeCode']>;
+  label: string;
+}> = [
+  { code: 'FS_QUARTER', label: 'BCTC Quý' },
+  { code: 'FS_SEMI', label: 'BCTC Bán niên' },
+  { code: 'ANNUAL_REPORT', label: 'Báo cáo Thường niên' },
+  { code: 'GOVERNANCE', label: 'Báo cáo Quản trị' },
+];
 
 interface CorporatePortalProps {
   organization?: Organization;
@@ -41,6 +52,7 @@ interface CorporatePortalProps {
   submissions?: Submission[];
   obligations?: DisclosureObligation[];
   templates?: TemplateDefinition[];
+  securities?: SecurityItem[];
   fields?: (TemplateField & { fieldDef: FieldDefinition })[];
   userRole?: UserRoleCode;
   onNewSubmission?: (sub: Partial<Submission>) => void;
@@ -56,14 +68,27 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
   submissions = [],
   obligations = [],
   templates = INITIAL_TEMPLATES,
+  securities = INITIAL_SECURITIES,
   fields,
   userRole = 'ROLE_ORG_STAFF',
   onNewSubmission,
   onSubmitNewFiling,
   activeModule,
+  alerts = [],
 }) => {
   const [showFilingModal, setShowFilingModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDefinition | null>(null);
+  const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_DASHBOARD_FILTERS);
+  const [subDrillDown, setSubDrillDown] = useState<{
+    title: string;
+    subtitle: string;
+    rows: Submission[];
+  } | null>(null);
+  const [oblDrillDown, setOblDrillDown] = useState<{
+    title: string;
+    subtitle: string;
+    rows: DisclosureObligation[];
+  } | null>(null);
 
   const organization =
     propOrganization ||
@@ -81,10 +106,158 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
 
   const orgSubmissions = (submissions || []).filter((s) => s.organizationId === orgId);
   const orgObligations = (obligations || []).filter((o) => o.organizationId === orgId);
+  const orgAlerts = (alerts || []).filter((a) => a.organizationId === orgId);
 
-  const overdueCount = orgObligations.filter((o) => o.status === 'LATE' || o.status === 'MISSING').length;
-  const pendingCount = orgObligations.filter((o) => o.status === 'PENDING').length;
-  const fulfilledCount = orgObligations.filter((o) => o.status === 'FULFILLED').length;
+  const boardBySecurityId = useMemo(() => {
+    const map = new Map<number, string>();
+    (securities || []).forEach((s) => map.set(s.id, s.board));
+    return map;
+  }, [securities]);
+
+  /**
+   * Một nguồn dữ liệu đã lọc duy nhất cho toàn bộ widget — đổi bộ lọc là mọi
+   * widget tính lại cùng lúc, không widget nào giữ bản sao riêng.
+   */
+  const filteredSubmissions = useMemo(
+    () =>
+      orgSubmissions.filter((sub) => {
+        if (filters.board !== 'ALL') {
+          const board = sub.securityId ? boardBySecurityId.get(sub.securityId) : undefined;
+          if (board !== filters.board) return false;
+        }
+        if (filters.period !== 'ALL' && sub.periodCode !== filters.period) return false;
+        return true;
+      }),
+    [orgSubmissions, filters, boardBySecurityId]
+  );
+
+  const filteredObligations = useMemo(
+    () =>
+      orgObligations.filter((obl) => {
+        if (filters.board !== 'ALL') {
+          const board = obl.securityId ? boardBySecurityId.get(obl.securityId) : undefined;
+          if (board !== filters.board) return false;
+        }
+        if (filters.period !== 'ALL' && obl.periodCode !== filters.period) return false;
+        return true;
+      }),
+    [orgObligations, filters, boardBySecurityId]
+  );
+
+  const pendingSubs = filteredSubmissions.filter((s) =>
+    ['DRAFT', 'PENDING_ORG_APPROVAL', 'SUBMITTED', 'REVIEWED', 'PENDING_APPROVAL', 'APPROVED'].includes(
+      s.status
+    )
+  );
+  const approvedSubs = filteredSubmissions.filter((s) => s.status === 'PUBLISHED');
+  const rejectedSubs = filteredSubmissions.filter((s) => s.status === 'CANCELLED');
+
+  const publishedTimeline = [...approvedSubs].sort((a, b) =>
+    (b.publishedAt || '').localeCompare(a.publishedAt || '')
+  );
+
+  const urgentObligations = filteredObligations.filter(
+    (o) => notificationService.evaluateObligationDeadline(o).isUrgent
+  );
+
+  const filterLabel = `Sàn: ${filters.board === 'ALL' ? 'Tất cả' : filters.board} · Kỳ: ${
+    filters.period === 'ALL' ? 'Tất cả' : filters.period
+  }`;
+
+  const submissionDrillColumns: DrillDownColumn<Submission>[] = [
+    {
+      header: 'Mã hồ sơ',
+      render: (row) => <span className="font-mono font-bold">{row.submissionNo}</span>,
+      exportValue: (row) => row.submissionNo,
+    },
+    {
+      header: 'Tiêu đề',
+      render: (row) => <span className="font-medium text-slate-900">{row.titleVi}</span>,
+      exportValue: (row) => row.titleVi,
+    },
+    {
+      header: 'Kỳ',
+      render: (row) => <span className="font-mono">{row.periodCode || '-'}</span>,
+      exportValue: (row) => row.periodCode || '',
+    },
+    {
+      header: 'Ngày nộp',
+      render: (row) =>
+        row.submittedAt ? new Date(row.submittedAt).toLocaleDateString('vi-VN') : '-',
+      exportValue: (row) =>
+        row.submittedAt ? new Date(row.submittedAt).toLocaleDateString('vi-VN') : '',
+    },
+    {
+      header: 'Trạng thái',
+      render: (row) => <StatusBadge status={row.status} type="submission" />,
+      exportValue: (row) => row.status,
+    },
+    {
+      header: 'Lý do từ chối',
+      render: (row) => <span className="text-rose-700">{row.rejectReason || '-'}</span>,
+      exportValue: (row) => row.rejectReason || '',
+    },
+  ];
+
+  const obligationDrillColumns: DrillDownColumn<DisclosureObligation>[] = [
+    {
+      header: 'Tên nghĩa vụ',
+      render: (row) => <span className="font-medium text-slate-900">{row.templateName}</span>,
+      exportValue: (row) => row.templateName,
+    },
+    {
+      header: 'Kỳ',
+      render: (row) => <span className="font-mono">{row.periodCode}</span>,
+      exportValue: (row) => row.periodCode,
+    },
+    {
+      header: 'Hạn nộp',
+      render: (row) => <span className="font-mono font-bold">{row.dueDate}</span>,
+      exportValue: (row) => row.dueDate,
+    },
+    {
+      header: 'Số ngày trễ',
+      render: (row) => (
+        <span className={row.lateDays ? 'text-rose-600 font-bold font-mono' : 'font-mono'}>
+          {row.lateDays || 0}
+        </span>
+      ),
+      exportValue: (row) => row.lateDays || 0,
+    },
+    {
+      header: 'Trạng thái',
+      render: (row) => <StatusBadge status={row.status} />,
+      exportValue: (row) => row.status,
+    },
+  ];
+
+  const openDrillDown = (title: string, subtitle: string, rows: Submission[]) => {
+    if (rows.length === 0) return;
+    setSubDrillDown({ title, subtitle, rows });
+  };
+
+  const openObligationDrillDown = (
+    title: string,
+    subtitle: string,
+    rows: DisclosureObligation[]
+  ) => {
+    if (rows.length === 0) return;
+    setOblDrillDown({ title, subtitle, rows });
+  };
+
+  const exportSubmissions = (fileName: string, rows: Submission[]) =>
+    exportToCsv(
+      fileName,
+      submissionDrillColumns.map((c) => ({ header: c.header, value: c.exportValue })),
+      rows
+    );
+
+  const exportObligations = (fileName: string, rows: DisclosureObligation[]) =>
+    exportToCsv(
+      fileName,
+      obligationDrillColumns.map((c) => ({ header: c.header, value: c.exportValue })),
+      rows
+    );
 
   const handleStartFiling = (template: TemplateDefinition) => {
     setSelectedTemplate(template);
@@ -162,166 +335,145 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
         </button>
       </div>
 
-      {/* Dashboard Obligations View (FR-062) */}
+      {/* Dashboard Doanh nghiệp — 5 widget (FR-027) */}
       {activeModule === 'corp_dashboard' && (
-        <div className="space-y-6">
-          {/* Color-Coded Status Overview Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-red-800 uppercase tracking-wider">
-                  Cờ Đỏ: Đã Quá Hạn
-                </span>
-                <XCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="text-2xl font-black text-red-900">{overdueCount} Nghĩa vụ</div>
-              <p className="text-[11px] text-red-700">Yêu cầu hoàn thành ngay để tránh bị xử lý vi phạm</p>
+        <div className="space-y-5">
+          <DashboardFilterBar
+            filters={filters}
+            onChange={setFilters}
+            resultCount={filteredSubmissions.length + filteredObligations.length}
+          />
+
+          {/* Widget 1 — Thống kê Báo cáo công bố theo trạng thái */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-bold text-slate-900">
+                1. Thống kê Báo cáo công bố
+              </h3>
+              <button
+                onClick={() => exportSubmissions('bao-cao-cong-bo', filteredSubmissions)}
+                disabled={filteredSubmissions.length === 0}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[11px] font-semibold ${
+                  filteredSubmissions.length === 0
+                    ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer'
+                }`}
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Xuất Excel</span>
+              </button>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-                  Cờ Vàng: Sắp Đến Hạn (≤7 Ngày)
-                </span>
-                <Clock className="h-5 w-5 text-amber-600" />
+            {filteredSubmissions.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">Không có dữ liệu</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Đang chờ duyệt', rows: pendingSubs, tone: 'text-indigo-600' },
+                  { label: 'Đã duyệt', rows: approvedSubs, tone: 'text-emerald-600' },
+                  { label: 'Bị từ chối', rows: rejectedSubs, tone: 'text-rose-600' },
+                ].map((cell) => (
+                  <button
+                    key={cell.label}
+                    onClick={() =>
+                      openDrillDown(`Báo cáo công bố — ${cell.label}`, filterLabel, cell.rows)
+                    }
+                    disabled={cell.rows.length === 0}
+                    className={`p-3 border border-slate-200 rounded-xl text-center ${
+                      cell.rows.length === 0 ? 'cursor-default' : 'hover:bg-slate-50 cursor-pointer'
+                    }`}
+                  >
+                    <div
+                      className={`text-2xl font-black font-mono ${
+                        cell.rows.length === 0 ? 'text-slate-300' : cell.tone
+                      }`}
+                    >
+                      {cell.rows.length}
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      {cell.label}
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div className="text-2xl font-black text-amber-900">
-                {orgObligations.filter((o) => notificationService.evaluateObligationDeadline(o).isWithin7Days).length} Nghĩa vụ
-              </div>
-              <p className="text-[11px] text-amber-700">Cần nộp gấp trong vòng 7 ngày tới</p>
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                  Cờ Xanh: Đã Hoàn Thành
-                </span>
-                <FileCheck className="h-5 w-5 text-emerald-600" />
-              </div>
-              <div className="text-2xl font-black text-emerald-900">{fulfilledCount} Báo cáo</div>
-              <p className="text-[11px] text-emerald-700">Đã nộp & được HNX ghi nhận thành công</p>
-            </div>
+            )}
           </div>
 
-          {/* High Priority Deadline Alert Banner (Deadlines within 7 days highlighted in red) */}
-          {orgObligations.some((o) => notificationService.evaluateObligationDeadline(o).isUrgent) && (
-            <div className="bg-red-500/10 border-2 border-red-500 rounded-2xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 text-red-700">
-                  <AlertTriangle className="h-5 w-5 text-red-600 animate-bounce" />
-                  <h3 className="text-sm font-extrabold uppercase tracking-wider">
-                    Cảnh báo Hạn nộp Báo cáo Gấp (≤ 7 Ngày / Quá Hạn)
-                  </h3>
-                </div>
-                <span className="px-2.5 py-1 bg-red-600 text-white font-mono text-[10px] font-bold rounded-sm animate-pulse uppercase">
-                  Notification Service Alert
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {orgObligations
-                  .filter((o) => notificationService.evaluateObligationDeadline(o).isUrgent)
-                  .map((obl) => {
-                    const dlStatus = notificationService.evaluateObligationDeadline(obl);
-                    return (
-                      <div
-                        key={obl.id}
-                        className="p-3 bg-white border border-red-300 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-bold text-slate-900 text-xs">{obl.templateName}</span>
-                            <span className={`px-2 py-0.5 rounded-sm text-[10px] ${dlStatus.badgeStyle}`}>
-                              {dlStatus.badgeText}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-600">
-                            Kỳ: <span className="font-mono font-medium">{obl.periodCode}</span> | Hạn chót:{' '}
-                            <span className="font-mono font-bold text-red-600">{obl.dueDate}</span>
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            const tpl = activeTemplates.find((t) => t.id === obl.templateId) || activeTemplates[0];
-                            handleStartFiling(tpl);
-                          }}
-                          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer self-start sm:self-auto shrink-0"
-                        >
-                          Lập E-Form & Nộp ngay
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
+          {/* Widget 2 — Tình trạng Báo cáo định kỳ: 4 loại × 3 trạng thái */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-bold text-slate-900">2. Tình trạng Báo cáo định kỳ</h3>
+              <button
+                onClick={() => exportObligations('bao-cao-dinh-ky', filteredObligations)}
+                disabled={filteredObligations.length === 0}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-lg text-[11px] font-semibold ${
+                  filteredObligations.length === 0
+                    ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer'
+                }`}
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Xuất Excel</span>
+              </button>
             </div>
-          )}
-
-          {/* Table of Obligations with Direct Action Buttons */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
-              <span>Lịch Nghĩa vụ Báo cáo & Công bố Thông tin (Định kỳ & Bất thường)</span>
-              <span className="text-xs font-normal text-slate-500">Tự động sinh theo Quy định</span>
-            </h3>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">STT</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Tên Nghĩa vụ Báo cáo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Kỳ báo cáo</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Hạn nộp & Cảnh báo (Notification Service)</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Trạng thái</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Thao tác Nộp ngay</th>
+              <table className="min-w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-3 py-2 text-left font-semibold text-slate-600">Loại báo cáo</th>
+                    <th className="px-3 py-2 text-center font-semibold text-slate-600">
+                      Đã nộp đúng hạn
+                    </th>
+                    <th className="px-3 py-2 text-center font-semibold text-slate-600">Chưa nộp</th>
+                    <th className="px-3 py-2 text-center font-semibold text-rose-700">Quá hạn</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {orgObligations.map((obl, idx) => {
-                    const dlStatus = notificationService.evaluateObligationDeadline(obl);
+                <tbody className="divide-y divide-slate-100">
+                  {PERIODIC_REPORT_TYPES.map((type) => {
+                    const rows = filteredObligations.filter(
+                      (o) => o.reportTypeCode === type.code
+                    );
+                    const onTime = rows.filter((o) => o.status === 'FULFILLED');
+                    const notYet = rows.filter(
+                      (o) => o.status === 'PENDING' || o.status === 'SUBMITTED'
+                    );
+                    const overdue = rows.filter(
+                      (o) => o.status === 'LATE' || o.status === 'MISSING'
+                    );
+
+                    const cell = (
+                      list: typeof rows,
+                      label: string,
+                      danger = false
+                    ) => (
+                      <td className="px-3 py-2 text-center">
+                        {list.length === 0 ? (
+                          <span className="text-slate-300 font-mono font-bold">0</span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              openObligationDrillDown(`${type.label} — ${label}`, filterLabel, list)
+                            }
+                            className={`font-mono font-bold hover:underline cursor-pointer ${
+                              danger ? 'text-rose-600' : 'text-slate-800'
+                            }`}
+                          >
+                            {list.length}
+                          </button>
+                        )}
+                      </td>
+                    );
+
                     return (
                       <tr
-                        key={obl.id}
-                        className={
-                          dlStatus.isUrgent
-                            ? 'bg-red-50/50 hover:bg-red-50 border-l-4 border-l-red-600 transition-colors'
-                            : 'hover:bg-slate-50/80 transition-colors'
-                        }
+                        key={type.code}
+                        className={overdue.length > 0 ? 'bg-rose-50/60' : 'hover:bg-slate-50/60'}
                       >
-                        <td className="px-4 py-3 text-xs text-slate-500">{idx + 1}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-900">{obl.templateName}</td>
-                        <td className="px-4 py-3 text-xs text-slate-600">{obl.periodCode}</td>
-                        <td className="px-4 py-3 text-xs">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono font-bold text-slate-900">{obl.dueDate}</span>
-                            <span className={`px-2 py-0.5 rounded-sm text-[10px] ${dlStatus.badgeStyle}`}>
-                              {dlStatus.badgeText}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={obl.status} />
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {obl.status !== 'FULFILLED' ? (
-                            <button
-                              onClick={() => {
-                                const tpl = activeTemplates.find((t) => t.id === obl.templateId) || activeTemplates[0];
-                                handleStartFiling(tpl);
-                              }}
-                              className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs cursor-pointer ${
-                                dlStatus.isUrgent
-                                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              }`}
-                            >
-                              <Send className="h-3.5 w-3.5" />
-                              <span>Nộp ngay</span>
-                            </button>
-                          ) : (
-                            <span className="text-xs text-emerald-600 font-medium">✓ Đã nộp</span>
-                          )}
-                        </td>
+                        <td className="px-3 py-2 font-semibold text-slate-900">{type.label}</td>
+                        {cell(onTime, 'Đã nộp đúng hạn')}
+                        {cell(notYet, 'Chưa nộp')}
+                        {cell(overdue, 'Quá hạn', true)}
                       </tr>
                     );
                   })}
@@ -329,6 +481,203 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
               </table>
             </div>
           </div>
+
+          {/* Widget 3 — Danh sách Tin bị từ chối kèm lý do */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+              3. Danh sách Tin bị từ chối
+            </h3>
+
+            {rejectedSubs.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Không có tin nào bị từ chối
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {rejectedSubs.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="p-3 bg-rose-50/70 border-l-4 border-l-rose-500 border border-rose-200 rounded-xl space-y-1"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-900">{sub.titleVi}</span>
+                      <span className="font-mono text-[10px] text-slate-500 shrink-0">
+                        {sub.submissionNo}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-rose-800">
+                      <span className="font-semibold">Lý do từ chối: </span>
+                      {sub.rejectReason || 'Chưa ghi nhận lý do.'}
+                    </p>
+                    {sub.rejectedAt && (
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        Từ chối ngày {new Date(sub.rejectedAt).toLocaleDateString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Widget 4 — Cảnh báo & Thông báo từ HNX và UBCKNN */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+              4. Cảnh báo &amp; Thông báo
+            </h3>
+
+            {orgAlerts.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Không có cảnh báo nào
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {orgAlerts.map((al) => (
+                  <div
+                    key={al.id}
+                    className={`p-3 border rounded-xl space-y-1.5 ${
+                      al.severity === 'CRITICAL'
+                        ? 'bg-rose-50/70 border-rose-200'
+                        : 'bg-amber-50/70 border-amber-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${
+                          al.source === 'UBCKNN'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-slate-900 text-white'
+                        }`}
+                      >
+                        {al.source || 'HNX'}
+                      </span>
+                      {al.responseDeadline && (
+                        <span className="text-[10px] font-mono font-bold text-rose-700">
+                          Hạn phản hồi: {al.responseDeadline}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{al.titleVi}</div>
+                    {al.suggestedAction && (
+                      <p className="text-[11px] text-slate-700">{al.suggestedAction}</p>
+                    )}
+                    <p className="text-[10px] text-slate-500 font-mono">Căn cứ: {al.legalBasis}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Widget 5 — Lịch sử công bố thông tin dạng timeline */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+              5. Lịch sử công bố thông tin
+            </h3>
+
+            {publishedTimeline.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">
+                Chưa có tin nào được công bố
+              </div>
+            ) : (
+              <ol className="relative border-l-2 border-slate-200 ml-2 space-y-4">
+                {publishedTimeline.map((sub) => (
+                  <li key={sub.id} className="ml-4">
+                    <span className="absolute -left-[7px] h-3 w-3 rounded-full bg-emerald-500 border-2 border-white" />
+                    <div className="text-[10px] font-mono text-slate-500">
+                      {sub.publishedAt
+                        ? new Date(sub.publishedAt).toLocaleString('vi-VN')
+                        : 'Chưa rõ thời điểm'}
+                    </div>
+                    <div className="text-xs font-bold text-slate-900">{sub.titleVi}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono text-[10px] text-slate-500">
+                        {sub.submissionNo}
+                      </span>
+                      {sub.translationStatus === 'APPROVED' && (
+                        <span className="px-1.5 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-xs text-[10px] font-bold">
+                          Song ngữ VI + EN
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+
+          {/* Nghĩa vụ sắp đến hạn — giữ lại phần "tôi đang nợ gì, hạn nào" */}
+          {urgentObligations.length > 0 && (
+            <div className="bg-red-500/10 border-2 border-red-500 rounded-2xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center space-x-2 text-red-700">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <h3 className="text-sm font-extrabold uppercase tracking-wider">
+                  Cảnh báo Hạn nộp Gấp (≤ 7 ngày / Quá hạn)
+                </h3>
+              </div>
+
+              <div className="space-y-2">
+                {urgentObligations.map((obl) => {
+                  const dlStatus = notificationService.evaluateObligationDeadline(obl);
+                  return (
+                    <div
+                      key={obl.id}
+                      className="p-3 bg-white border border-red-300 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <span className="font-bold text-slate-900 text-xs">
+                            {obl.templateName}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-sm text-[10px] ${dlStatus.badgeStyle}`}>
+                            {dlStatus.badgeText}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          Kỳ: <span className="font-mono font-medium">{obl.periodCode}</span> | Hạn
+                          chót:{' '}
+                          <span className="font-mono font-bold text-red-600">{obl.dueDate}</span>
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          const tpl =
+                            activeTemplates.find((t) => t.id === obl.templateId) ||
+                            activeTemplates[0];
+                          if (tpl) handleStartFiling(tpl);
+                        }}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer self-start sm:self-auto shrink-0"
+                      >
+                        Lập E-Form &amp; Nộp ngay
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <DrillDownGrid
+            open={Boolean(subDrillDown)}
+            title={subDrillDown?.title || ''}
+            subtitle={subDrillDown?.subtitle}
+            columns={submissionDrillColumns}
+            rows={subDrillDown?.rows || []}
+            rowKey={(row) => row.id}
+            exportFileName="chi-tiet-bao-cao-cong-bo"
+            onClose={() => setSubDrillDown(null)}
+          />
+
+          <DrillDownGrid
+            open={Boolean(oblDrillDown)}
+            title={oblDrillDown?.title || ''}
+            subtitle={oblDrillDown?.subtitle}
+            columns={obligationDrillColumns}
+            rows={oblDrillDown?.rows || []}
+            rowKey={(row) => row.id}
+            exportFileName="chi-tiet-nghia-vu-bao-cao"
+            onClose={() => setOblDrillDown(null)}
+          />
         </div>
       )}
 

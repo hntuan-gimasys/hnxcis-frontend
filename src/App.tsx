@@ -306,8 +306,22 @@ export default function App() {
     const sub = submissions.find((s) => s.id === subId);
     if (!sub) return;
 
+    // Lưu lý do ngay trên hồ sơ: widget "Danh sách Tin bị từ chối" của Cổng Doanh
+    // nghiệp phải hiện được lý do, không bắt DN đi tra Audit Log.
+    const now = new Date().toISOString();
     setSubmissions((prev) =>
-      prev.map((s) => (s.id === subId ? { ...s, status: 'CANCELLED' } : s))
+      prev.map((s) =>
+        s.id === subId
+          ? {
+              ...s,
+              status: 'CANCELLED',
+              rejectReason: reason || 'Từ chối phê duyệt',
+              rejectedAt: now,
+              updatedAt: now,
+              updatedBy: currentUser.id,
+            }
+          : s
+      )
     );
     logSubmissionTransition(
       sub,
@@ -467,6 +481,7 @@ export default function App() {
               obligations={obligations}
               submissions={submissions}
               templates={templates}
+              securities={securities}
               alerts={alerts}
               onSubmitNewFiling={(newSub) => {
                 setSubmissions((prev) => [newSub, ...prev]);
@@ -484,6 +499,8 @@ export default function App() {
                   obligations={obligations}
                   tasks={tasks}
                   currentUser={currentUser}
+                  securities={securities}
+                  organizations={organizations}
                   onNavigateToModule={(mod) => setActiveModule(mod)}
                 />
               )}

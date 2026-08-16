@@ -28,7 +28,11 @@ export type UserRoleCode =
   | 'ROLE_PUBLIC';
 
 export type SecurityType = 'EQUITY' | 'BOND_LISTED' | 'BOND_PRIVATE' | 'BOND_GREEN';
-export type BoardType = 'HNX' | 'UPCOM' | 'PRIVATE_BOND';
+/**
+ * `HOSE` phục vụ bộ lọc sàn của Dashboard (FR-027). Nghiệp vụ chính của hệ thống
+ * là HNX và UPCoM; dữ liệu HOSE đến từ CSDL tập trung, chỉ dùng để đọc/thống kê.
+ */
+export type BoardType = 'HOSE' | 'HNX' | 'UPCOM' | 'PRIVATE_BOND';
 
 /**
  * Picklist 1/2 — `Trạng thái chứng khoán` (PRD v1.2 §5.2.8.b).
@@ -90,11 +94,19 @@ export type BusinessCaseStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 
+/**
+ * ⚠️ URD phân loại tin theo picklist `Loại tin` 4 giá trị (Báo cáo tài chính /
+ * Bất thường 24h / Định kỳ khác / Chào bán phát hành), còn danh sách dưới đây
+ * theo bản phân rã Confluence. Hai cách phân loại KHÔNG khớp nhau — có thể là
+ * hai chiều phân loại độc lập, chờ nghiệp vụ xác nhận (PRD v1.2 §12.6 câu 28).
+ * `OFFERING` được bổ sung để dashboard có nhóm "Chào bán / Phát hành".
+ */
 export type NewsGroupCode =
   | 'PERIODIC'
   | 'EXTRAORDINARY'
   | 'BOND'
   | 'TRADING'
+  | 'OFFERING'
   | 'ON_DEMAND'
   | 'HNX_NEWS';
 
@@ -419,6 +431,9 @@ export interface Submission extends BaseEntity {
   correctionOfId?: number;
   correctionType?: 'MINOR_EDIT' | 'MATERIAL_CORRECTION';
   isPublic: boolean;
+  /** Lý do từ chối — widget "Danh sách Tin bị từ chối" của DN phải hiện được. */
+  rejectReason?: string;
+  rejectedAt?: string;
   hiddenAt?: string;
   hiddenBy?: number;
   hideReason?: string;
@@ -555,6 +570,10 @@ export interface Alert extends BaseEntity {
   securityId?: number;
   symbol?: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  /** Cơ quan phát hành cảnh báo — widget của DN phải phân biệt HNX và UBCKNN. */
+  source?: 'HNX' | 'UBCKNN';
+  /** Hạn chót doanh nghiệp phải phản hồi cảnh báo. */
+  responseDeadline?: string;
   titleVi: string;
   evidenceJson: Record<string, any>;
   suggestedAction?: string;
@@ -593,6 +612,8 @@ export interface DisclosureObligation extends BaseEntity {
   templateId: number;
   templateName: string;
   newsGroupCode: NewsGroupCode;
+  /** Bốn loại báo cáo định kỳ của widget "Tình trạng Báo cáo định kỳ" (FR-027). */
+  reportTypeCode?: 'FS_QUARTER' | 'FS_SEMI' | 'ANNUAL_REPORT' | 'GOVERNANCE';
   periodCode: string;
   periodEndDate: string;
   dueDate: string;
