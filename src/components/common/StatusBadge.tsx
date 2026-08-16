@@ -4,43 +4,67 @@
  */
 
 import React from 'react';
-import { SecurityStatus, SubmissionStatus, BusinessCaseStatus } from '../../types/hnx';
+import {
+  SecurityStatus,
+  SurveillanceStatus,
+  SubmissionStatus,
+  BusinessCaseStatus,
+} from '../../types/hnx';
 
 interface StatusBadgeProps {
-  status: SecurityStatus | SubmissionStatus | BusinessCaseStatus | string;
-  type?: 'security' | 'submission' | 'case' | 'generic';
+  status:
+    | SecurityStatus
+    | SurveillanceStatus
+    | SubmissionStatus
+    | BusinessCaseStatus
+    | string;
+  /**
+   * `security` và `surveillance` là HAI danh mục khác nhau (PRD v1.2 §5.2.8.b),
+   * không phải một. Luôn truyền `type` khi render hai loại này, vì chúng có
+   * những mã trùng tên (WARNING, CONTROL, TRADING_HALT) nhưng nhãn khác nhau.
+   */
+  type?: 'security' | 'surveillance' | 'submission' | 'case' | 'generic';
 }
+
+/** Picklist 1 — Trạng thái chứng khoán, đúng 5 giá trị. */
+const SECURITY_STATUS: Record<SecurityStatus, { label: string; bgClass: string }> = {
+  NORMAL: { label: 'Bình thường', bgClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  WARNING: { label: 'Cảnh báo', bgClass: 'bg-amber-50 text-amber-700 border-amber-300' },
+  CONTROL: { label: 'Kiểm soát', bgClass: 'bg-orange-50 text-orange-700 border-orange-300' },
+  TRADING_HALT: { label: 'Tạm ngừng giao dịch', bgClass: 'bg-red-100 text-red-800 border-red-300' },
+  DELISTED: { label: 'Hủy niêm yết', bgClass: 'bg-gray-200 text-gray-700 border-gray-400' },
+};
+
+/** Picklist 2 — Trạng thái kiểm soát (diện giám sát), đúng 9 giá trị. */
+const SURVEILLANCE_STATUS: Record<SurveillanceStatus, { label: string; bgClass: string }> = {
+  WARNING: { label: 'Cảnh báo', bgClass: 'bg-amber-50 text-amber-700 border-amber-300' },
+  CONTROL: { label: 'Kiểm soát', bgClass: 'bg-orange-50 text-orange-700 border-orange-300' },
+  TRADING_RESTRICTED: { label: 'Hạn chế giao dịch', bgClass: 'bg-rose-50 text-rose-700 border-rose-300' },
+  TRADING_PAUSE: { label: 'Tạm dừng giao dịch', bgClass: 'bg-red-50 text-red-700 border-red-200' },
+  TRADING_HALT: { label: 'Tạm ngừng giao dịch', bgClass: 'bg-red-100 text-red-800 border-red-300' },
+  TRADING_SUSPENSION: { label: 'Đình chỉ giao dịch', bgClass: 'bg-red-200 text-red-900 border-red-400' },
+  MANDATORY_DELIST: { label: 'Hủy bắt buộc', bgClass: 'bg-zinc-800 text-white border-zinc-900' },
+  VOLUNTARY_DELIST: { label: 'Hủy tự nguyện', bgClass: 'bg-slate-200 text-slate-800 border-slate-400' },
+  DEREGISTER_TRADING: { label: 'Hủy đăng ký giao dịch', bgClass: 'bg-slate-100 text-slate-700 border-slate-300' },
+};
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'generic' }) => {
   let label = status;
   let bgClass = 'bg-gray-100 text-gray-800 border-gray-300';
 
-  if (type === 'security' || ['NORMAL', 'WARNING', 'CONTROL', 'TRADING_RESTRICTED', 'TRADING_HALT', 'DELISTED'].includes(status)) {
-    switch (status) {
-      case 'NORMAL':
-        label = 'Bình thường';
-        bgClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-        break;
-      case 'WARNING':
-        label = 'Cảnh báo (Đ40)';
-        bgClass = 'bg-amber-50 text-amber-700 border-amber-300';
-        break;
-      case 'CONTROL':
-        label = 'Kiểm soát (Đ41)';
-        bgClass = 'bg-orange-50 text-orange-700 border-orange-300';
-        break;
-      case 'TRADING_RESTRICTED':
-        label = 'Hạn chế GD (Đ42)';
-        bgClass = 'bg-rose-50 text-rose-700 border-rose-300';
-        break;
-      case 'TRADING_HALT':
-        label = 'Tạm ngừng GD (Đ44)';
-        bgClass = 'bg-red-100 text-red-800 border-red-300';
-        break;
-      case 'DELISTED':
-        label = 'Hủy niêm yết';
-        bgClass = 'bg-gray-200 text-gray-700 border-gray-400';
-        break;
+  // Hai danh mục dưới đây chỉ tra khi được chỉ định `type` — suy đoán theo mã sẽ
+  // sai, vì WARNING/CONTROL/TRADING_HALT tồn tại ở CẢ HAI với ý nghĩa khác nhau.
+  if (type === 'surveillance') {
+    const entry = SURVEILLANCE_STATUS[status as SurveillanceStatus];
+    if (entry) {
+      label = entry.label;
+      bgClass = entry.bgClass;
+    }
+  } else if (type === 'security' || (type === 'generic' && status in SECURITY_STATUS)) {
+    const entry = SECURITY_STATUS[status as SecurityStatus];
+    if (entry) {
+      label = entry.label;
+      bgClass = entry.bgClass;
     }
   } else if (type === 'submission' || ['DRAFT', 'SUBMITTED', 'REVIEWED', 'APPROVED', 'PUBLISHED', 'CORRECTED', 'HIDDEN', 'CANCELLED'].includes(status)) {
     switch (status) {

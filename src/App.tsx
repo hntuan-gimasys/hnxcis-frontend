@@ -11,6 +11,7 @@ import {
   INITIAL_BOND_PROFILES,
   INITIAL_SUBMISSIONS,
   INITIAL_ALERTS,
+  INITIAL_SURVEILLANCE_RECORDS,
   INITIAL_OBLIGATIONS,
   INITIAL_USERS,
   INITIAL_AUDIT_LOGS,
@@ -23,6 +24,7 @@ import {
   AuditLog,
   NotificationItem,
   Alert,
+  SurveillanceRecord,
   FeeRecord,
 } from './types/hnx';
 import { notificationService } from './services/notificationService';
@@ -55,6 +57,7 @@ export default function App() {
   const [bondProfiles] = useState(INITIAL_BOND_PROFILES);
   const [submissions, setSubmissions] = useState<Submission[]>(INITIAL_SUBMISSIONS);
   const [alerts] = useState<Alert[]>(INITIAL_ALERTS);
+  const [surveillanceRecords] = useState<SurveillanceRecord[]>(INITIAL_SURVEILLANCE_RECORDS);
   const [obligations] = useState(INITIAL_OBLIGATIONS);
   const [tasks] = useState([]);
   const [fees] = useState<FeeRecord[]>([
@@ -314,6 +317,7 @@ export default function App() {
                   equityProfiles={equityProfiles}
                   bondProfiles={bondProfiles}
                   alerts={alerts}
+                  surveillanceRecords={surveillanceRecords}
                   fees={fees}
                   userRole={currentUser.roleCode}
                   onAuditHistory={handleOpenAuditHistory}

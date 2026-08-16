@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Building,
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   EquityProfile,
   BondProfile,
   Alert,
+  SurveillanceRecord,
   FeeRecord,
   UserRoleCode,
 } from '../../types/hnx';
@@ -54,6 +55,7 @@ interface ListingModuleProps {
   equityProfiles: EquityProfile[];
   bondProfiles: BondProfile[];
   alerts: Alert[];
+  surveillanceRecords: SurveillanceRecord[];
   fees: FeeRecord[];
   userRole: UserRoleCode;
   onAuditHistory: (type: string, id: number, label: string) => void;
@@ -67,12 +69,93 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
   equityProfiles,
   bondProfiles,
   alerts,
+  surveillanceRecords,
   fees,
   userRole,
   onAuditHistory,
 }) => {
   const subTab = MODULE_TO_TAB[activeModule] || 'equities';
   const setSubTab = (tab: string) => onChangeModule(TAB_TO_MODULE[tab] || 'qlny_equities');
+
+  /** Diện đang áp dụng = chưa có ngày ra (PRD §5.2.8.b, idx_surv_open). */
+  const [survFilter, setSurvFilter] = useState<'OPEN' | 'ALL'>('OPEN');
+
+  const openSurvCount = useMemo(
+    () => (surveillanceRecords || []).filter((r) => !r.endDate).length,
+    [surveillanceRecords]
+  );
+
+  const filteredSurvRecords = useMemo(
+    () =>
+      survFilter === 'OPEN'
+        ? (surveillanceRecords || []).filter((r) => !r.endDate)
+        : surveillanceRecords || [],
+    [surveillanceRecords, survFilter]
+  );
+
+  const surveillanceColumns: ColumnDef<SurveillanceRecord>[] = [
+    {
+      key: 'securityId',
+      headerVi: 'Mã CK / TCNY',
+      render: (row) => {
+        const sec = securities.find((s) => s.id === row.securityId);
+        const org = organizations.find((o) => o.id === row.organizationId);
+        return (
+          <div>
+            <div className="font-extrabold text-indigo-700 text-sm font-mono">
+              {sec?.symbol || '-'}
+            </div>
+            <div className="text-xs text-slate-600 font-medium">{org?.nameVi || '-'}</div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'controlStatus',
+      headerVi: 'Trạng thái Kiểm soát',
+      render: (row) => <StatusBadge status={row.controlStatus} type="surveillance" />,
+    },
+    {
+      key: 'startDate',
+      headerVi: 'Từ ngày → Đến ngày',
+      render: (row) => (
+        <div className="font-mono text-xs">
+          <div className="font-bold text-slate-800">{row.startDate || '-'}</div>
+          <div className={row.endDate ? 'text-slate-500' : 'text-emerald-700 font-bold'}>
+            {row.endDate ? `→ ${row.endDate}` : '→ Đang áp dụng'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'entryReason',
+      headerVi: 'Lý do đưa vào / Quyết định',
+      render: (row) => (
+        <div className="max-w-md space-y-1">
+          <div className="text-xs text-slate-700">{row.entryReason}</div>
+          <div className="font-mono text-[10px] text-slate-500">
+            {row.decisionRef} — ngày {row.decisionDate}
+            {row.ruleCode && ` | Rule: ${row.ruleCode}`}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'orgExplained',
+      headerVi: 'TCNY đã giải trình?',
+      render: (row) => (
+        <span
+          className={`px-2 py-0.5 rounded-xs text-xs font-bold uppercase tracking-wider border ${
+            row.orgExplained
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          }`}
+        >
+          {row.orgExplained ? '✓ Đã giải trình' : '✕ Chưa giải trình'}
+        </span>
+      ),
+    },
+  ];
 
   const equityColumns: ColumnDef<EquityProfile>[] = [
     {
@@ -106,6 +189,7 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
     },
     {
       key: 'securityStatus',
+      // Picklist 5 giá trị. Diện giám sát (9 giá trị) nằm ở tab "Kiểm soát Trạng thái".
       headerVi: 'Trạng thái Chứng khoán',
       render: (row) => <StatusBadge status={row.securityStatus} type="security" />,
     },
@@ -222,15 +306,80 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
       )}
 
       {subTab === 'status_control' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="text-base font-bold text-slate-900">
-              Cảnh báo & Đề xuất Kiểm soát Trạng thái Chứng khoán (Điều 40, 41, 42, 44)
-            </h3>
-            <span className="text-xs text-slate-500 font-mono">Tự động rà soát theo BCTC & Vi phạm</span>
+        <div className="space-y-6">
+          {/* Danh sách bản ghi diện giám sát — picklist `Trạng thái kiểm soát` 9 giá trị */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Danh sách Kiểm soát Niêm yết / ĐKGD (FR-008)
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Mỗi lần đưa một mã CK vào / ra một diện là một bản ghi riêng. Danh mục{' '}
+                  <span className="font-semibold text-slate-700">Trạng thái kiểm soát</span> gồm 9
+                  giá trị, khác với <span className="font-semibold text-slate-700">Trạng thái
+                  chứng khoán</span> (5 giá trị) trên hồ sơ cổ phiếu.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-md text-xs shrink-0">
+                <button
+                  onClick={() => setSurvFilter('OPEN')}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                    survFilter === 'OPEN'
+                      ? 'bg-white text-indigo-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Đang áp dụng ({openSurvCount})
+                </button>
+                <button
+                  onClick={() => setSurvFilter('ALL')}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                    survFilter === 'ALL'
+                      ? 'bg-white text-indigo-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Toàn bộ lịch sử ({(surveillanceRecords || []).length})
+                </button>
+              </div>
+            </div>
+
+            <DynamicTable
+              columns={surveillanceColumns}
+              data={filteredSurvRecords}
+              searchPlaceholder="Tìm theo mã CK, lý do, số quyết định..."
+              onExportExcel={() =>
+                alert('Đã xuất Danh sách kiểm soát niêm yết (.xlsx) giữ nguyên định dạng!')
+              }
+              actions={(row) => (
+                <button
+                  onClick={() =>
+                    onAuditHistory(
+                      'SURVEILLANCE_RECORD',
+                      row.id,
+                      `${securities.find((s) => s.id === row.securityId)?.symbol || ''} - ${row.decisionRef}`
+                    )
+                  }
+                  className="text-xs text-blue-600 font-semibold hover:underline"
+                >
+                  Lịch sử log
+                </button>
+              )}
+            />
           </div>
 
-          <div className="space-y-3">
+          {/* Cảnh báo Rule Engine đề xuất đưa vào diện */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
+                Cảnh báo & Đề xuất Đưa vào Diện Giám sát (Điều 40, 41, 42, 44)
+              </h3>
+              <span className="text-xs text-slate-500 font-mono">Tự động rà soát theo BCTC & Vi phạm</span>
+            </div>
+
+            <div className="space-y-3">
             {(alerts || []).map((al) => (
               <div key={al.id} className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2 text-xs">
                 <div className="flex items-center justify-between">
@@ -258,7 +407,8 @@ export const ListingModule: React.FC<ListingModuleProps> = ({
                   </button>
                 </div>
               </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}

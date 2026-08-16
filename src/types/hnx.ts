@@ -25,13 +25,39 @@ export type UserRoleCode =
 export type SecurityType = 'EQUITY' | 'BOND_LISTED' | 'BOND_PRIVATE' | 'BOND_GREEN';
 export type BoardType = 'HNX' | 'UPCOM' | 'PRIVATE_BOND';
 
+/**
+ * Picklist 1/2 — `Trạng thái chứng khoán` (PRD v1.2 §5.2.8.b).
+ * ĐÚNG 5 giá trị, hiển thị trên hồ sơ cổ phiếu/trái phiếu (FR-001 trường 11).
+ * KHÔNG thêm "Hạn chế giao dịch" vào đây — đó là giá trị của `SurveillanceStatus`.
+ *
+ * TẠM THỜI: PRD §5.6.1 (sơ đồ state machine) vs §5.2.8.b (bảng picklist) mâu thuẫn
+ * — §5.6.1 vẽ TRADING_RESTRICTED nằm trong chuỗi Điều 42 của `security.status`,
+ * §5.2.8.b nói picklist này chỉ có 5 giá trị. Chưa chốt với nghiệp vụ — xem §12.6
+ * câu 16. Nếu nghiệp vụ chốt theo §5.6.1 thì phải thêm lại TRADING_RESTRICTED ở đây.
+ */
 export type SecurityStatus =
   | 'NORMAL'
   | 'WARNING'
   | 'CONTROL'
-  | 'TRADING_RESTRICTED'
   | 'TRADING_HALT'
   | 'DELISTED';
+
+/**
+ * Picklist 2/2 — `Trạng thái kiểm soát` (PRD v1.2 §5.2.8.b).
+ * ĐÚNG 9 giá trị, thuộc bản ghi diện giám sát (FR-008 trường 3), KHÁC HẲN
+ * `SecurityStatus`. Đây là danh mục duy nhất chứa "Hạn chế giao dịch".
+ * Không trộn hai danh mục này với nhau (lỗi PRD v1.0 §13.2 S4).
+ */
+export type SurveillanceStatus =
+  | 'WARNING'
+  | 'TRADING_SUSPENSION'
+  | 'TRADING_RESTRICTED'
+  | 'MANDATORY_DELIST'
+  | 'DEREGISTER_TRADING'
+  | 'VOLUNTARY_DELIST'
+  | 'CONTROL'
+  | 'TRADING_PAUSE'
+  | 'TRADING_HALT';
 
 export type BondStatus = 'LISTED' | 'SUSPENDED' | 'MATURED' | 'DELISTED';
 
@@ -111,6 +137,32 @@ export interface SecurityItem extends BaseEntity {
   isin?: string;
   status: SecurityStatus;
   listingStatusNote?: string;
+}
+
+/**
+ * Bản ghi diện giám sát (FR-008, PRD v1.2 §5.2.8.b — bảng `surveillance_status`).
+ * Mỗi lần đưa một mã CK vào/ra một diện là MỘT bản ghi có ngày bắt đầu, ngày kết
+ * thúc, lý do và số quyết định — không phải một trường trạng thái trên hồ sơ CK.
+ */
+export interface SurveillanceRecord extends BaseEntity {
+  organizationId: number;
+  securityId: number;
+  controlStatus: SurveillanceStatus;
+  startDate?: string;
+  endDate?: string;
+  entryReason: string;
+  decisionRef: string;
+  decisionDate: string;
+  firstTradingDate?: string;
+  enteredBy?: string;
+  enteredDate?: string;
+  exitedBy?: string;
+  exitDate?: string;
+  /** URD: "TCNY đã giải trình tình trạng chưa?" */
+  orgExplained?: boolean;
+  ruleCode?: string;
+  alertId?: number;
+  businessCaseId?: number;
 }
 
 export interface EquityProfile extends BaseEntity {
