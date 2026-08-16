@@ -220,9 +220,12 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                         </button>
                       </div>
 
-                      {sub.payload && (
+                      {/* Bản EN đã hiệu đính công bố cùng lúc với bản VI (FR-065) */}
+                      {(sub.payload || sub.contentEn) && (
                         <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                          {sub.payload.summary_note || JSON.stringify(sub.payload)}
+                          {lang === 'en' && sub.contentEn
+                            ? sub.contentEn
+                            : sub.payload?.summary_note || JSON.stringify(sub.payload)}
                         </p>
                       )}
                     </div>

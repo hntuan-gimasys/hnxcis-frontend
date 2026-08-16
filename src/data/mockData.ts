@@ -374,7 +374,9 @@ export const INITIAL_TEMPLATES: TemplateDefinition[] = [
     deadlineRuleJson: { basis: 'EVENT_DATE', offsetHours: 24 },
     isActive: true,
     inUse: true,
-    autoTranslate: true,
+    // Tin gấp 24h ưu tiên công bố nhanh, không qua vòng dịch. URD chỉ dịch tự động
+    // "một số nhóm tin" (§13.9 Đ38) — đừng giả định mọi mẫu tin đều có luồng dịch.
+    autoTranslate: false,
   },
   {
     id: 3,
@@ -573,6 +575,12 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
     lang: 'vi',
     isPublic: true,
     caSignedAt: '2026-07-20T10:14:30Z',
+    // Đã công bố song ngữ: bản EN nằm ngay trên bản ghi này, cùng publishedAt.
+    translationStatus: 'APPROVED',
+    contentEn:
+      'Net revenue reached VND 16,200 billion, growth of 4.5% year-on-year.',
+    translationReviewedAt: '2026-07-20T15:40:00Z',
+    translationReviewedBy: 3,
   },
   {
     id: 2,
@@ -587,7 +595,6 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
     organizationId: 3,
     securityId: 3,
     titleVi: 'CBTT Bất thường: Giải trình biến động LNST quý 2 năm 2026 - Vingroup (VIC)',
-    titleEn: 'Explanation on Q2/2026 Financial Results - Vingroup',
     payload: {
       summary_note: 'Công ty công bố văn bản giải trình lý do chênh lệch LNST bán niên 2026 so với kỳ trước.',
     },
@@ -597,6 +604,41 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
     status: 'REVIEWED',
     lang: 'vi',
     isPublic: false,
+    // Mẫu "Bất thường 24h" tắt autoTranslate -> duyệt xong công bố thẳng, không
+    // qua bước hiệu đính EN.
+    translationStatus: 'NONE',
+  },
+  {
+    id: 3,
+    createdAt: '2026-08-14T02:00:00Z',
+    createdBy: 2,
+    versionNo: 1,
+    isCurrent: true,
+    submissionNo: 'SUB-2026-HNX-045',
+    templateId: 3,
+    templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'HNX_NEWS',
+    organizationId: 4,
+    securityId: 5,
+    titleVi:
+      'Thông báo HNX: Đưa cổ phiếu ALPH vào diện kiểm soát do lỗ lũy kế 2 năm liên tiếp',
+    titleEn:
+      'Hanoi Stock Exchange announcement: ALPH shares placed under control due to accumulated losses for 2 consecutive years',
+    payload: {
+      title_vi: 'Đưa cổ phiếu ALPH vào diện kiểm soát',
+      summary_note:
+        'Sở Giao dịch Chứng khoán Hà Nội thông báo đưa cổ phiếu ALPH vào diện kiểm soát kể từ ngày 15/06/2026 theo Quyết định số 088/QĐ-SGDHN.',
+    },
+    submittedAt: '2026-08-14T02:30:00Z',
+    reviewedAt: '2026-08-14T03:10:00Z',
+    approvedAt: '2026-08-14T04:00:00Z',
+    status: 'APPROVED',
+    lang: 'vi',
+    isPublic: false,
+    // Đã duyệt bản VI, bản dịch nháp đã sinh và đang chờ chuyên viên hiệu đính.
+    translationStatus: 'AI_DRAFT',
+    contentEn:
+      'Hanoi Stock Exchange thông báo đưa shares ALPH vào diện kiểm soát kể từ ngày 15/06/2026 theo Quyết định số 088/QĐ-SGDHN.',
   },
 ];
 

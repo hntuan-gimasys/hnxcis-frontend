@@ -400,8 +400,22 @@ export interface Submission extends BaseEntity {
   status: SubmissionStatus;
   workflowInstanceId?: number;
   lang: 'vi' | 'en';
+  /**
+   * Chỉ dùng cho dữ liệu cũ theo mô hình 2 bản ghi. Vòng đời song ngữ hiện tại là
+   * MỘT bản ghi: bản EN nằm ở `titleEn` / `contentEn` của chính bản VI, công bố
+   * cùng lúc trong một hành động (PRD v1.2 §7.4 FR-065, §13.9 Đ38 — sửa lỗi S6/S7).
+   */
   sourceSubmissionId?: number;
+  /**
+   * `NONE` = mẫu tin không thuộc nhóm được cấu hình dịch (`template.autoTranslate`
+   * tắt) → không sinh bản dịch, công bố thẳng. Bản EN bắt buộc qua hiệu đính của
+   * người (`AI_DRAFT` → `HUMAN_REVIEWED`) mới công bố được (AC-065-4, AC-065-6).
+   */
   translationStatus?: 'NONE' | 'AI_DRAFT' | 'HUMAN_REVIEWED' | 'APPROVED';
+  /** Nội dung bản EN sau hiệu đính. Bản VI đối chiếu lấy từ `payload.summary_note`. */
+  contentEn?: string;
+  translationReviewedAt?: string;
+  translationReviewedBy?: number;
   correctionOfId?: number;
   correctionType?: 'MINOR_EDIT' | 'MATERIAL_CORRECTION';
   isPublic: boolean;

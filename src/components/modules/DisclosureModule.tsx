@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileText,
   AlertTriangle,
@@ -18,8 +18,8 @@ import {
   Building2,
   X,
 } from 'lucide-react';
-import { Submission, Alert, Organization } from '../../types/hnx';
-import { INITIAL_ORGANIZATIONS } from '../../data/mockData';
+import { Submission, Alert, Organization, TemplateDefinition } from '../../types/hnx';
+import { INITIAL_ORGANIZATIONS, INITIAL_TEMPLATES } from '../../data/mockData';
 import { StatusBadge } from '../common/StatusBadge';
 import { WorkflowActionBar } from '../common/WorkflowActionBar';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
@@ -29,8 +29,13 @@ interface DisclosureModuleProps {
   submissions: Submission[];
   organizations?: Organization[];
   alerts: Alert[];
+  templates?: TemplateDefinition[];
   onReviewSubmission: (subId: number) => void;
   onApproveSubmission: (subId: number, comment: string) => void;
+  /** Lưu bản EN sau hiệu đính (FR-065). */
+  onSaveTranslation: (subId: number, titleEn: string, contentEn: string) => void;
+  /** Công bố VI + EN trong một hành động duy nhất. */
+  onPublishBilingual: (subId: number, comment: string) => void;
   onRejectSubmission: (subId: number, reason: string) => void;
   onHideSubmission: (subId: number, reason: string) => void;
   onAuditHistory: (type: string, id: number, label: string) => void;
@@ -38,16 +43,26 @@ interface DisclosureModuleProps {
   currentUserId?: number;
 }
 
+/**
+ * Hàng đợi "cần xử lý". Có cả APPROVED vì sau khi tách vòng đời song ngữ, hồ sơ
+ * đã duyệt bản VI vẫn còn việc: hiệu đính bản EN rồi công bố VI + EN.
+ */
 const isPendingStatus = (status: string) =>
-  status === 'SUBMITTED' || status === 'REVIEWED' || status === 'PENDING_APPROVAL';
+  status === 'SUBMITTED' ||
+  status === 'REVIEWED' ||
+  status === 'PENDING_APPROVAL' ||
+  status === 'APPROVED';
 
 export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
   activeModule,
   submissions,
   organizations = INITIAL_ORGANIZATIONS,
   alerts,
+  templates = INITIAL_TEMPLATES,
   onReviewSubmission,
   onApproveSubmission,
+  onSaveTranslation,
+  onPublishBilingual,
   onRejectSubmission,
   onHideSubmission,
   onAuditHistory,
@@ -63,6 +78,27 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
     () => (submissions || []).find((s) => s.id === selectedSubId) || null,
     [submissions, selectedSubId]
   );
+
+  /**
+   * Chỉ mẫu tin bật `autoTranslate` mới có vòng dịch — URD chỉ dịch tự động "một
+   * số nhóm tin" (PRD §13.9 Đ38, AC-065-6).
+   */
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => t.id === selectedSub?.templateId) || null,
+    [templates, selectedSub]
+  );
+  const needsTranslation = Boolean(selectedTemplate?.autoTranslate);
+  const isProofreadStage = selectedSub?.status === 'APPROVED' && needsTranslation;
+
+  // Bản nháp EN đang sửa. Đồng bộ lại khi đổi hồ sơ hoặc khi bản lưu thay đổi,
+  // nếu không thì panel sẽ giữ nội dung của hồ sơ được chọn trước đó.
+  const [draftTitleEn, setDraftTitleEn] = useState('');
+  const [draftContentEn, setDraftContentEn] = useState('');
+
+  useEffect(() => {
+    setDraftTitleEn(selectedSub?.titleEn || '');
+    setDraftContentEn(selectedSub?.contentEn || '');
+  }, [selectedSub?.id, selectedSub?.titleEn, selectedSub?.contentEn]);
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -198,7 +234,7 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Chờ phê duyệt ({(submissions || []).filter((s) => isPendingStatus(s.status)).length})
+                  Cần xử lý ({(submissions || []).filter((s) => isPendingStatus(s.status)).length})
                 </button>
                 <button
                   onClick={() => setStatusFilter('ALL')}
@@ -313,7 +349,79 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                   <div className="font-mono text-slate-500">{selectedSub.submissionNo}</div>
                   <div className="font-bold text-slate-900">{selectedSub.titleVi}</div>
                   <div className="text-slate-600 mt-1">Pháp lý: Thông tư 96/2020/TT-BTC</div>
+                  {selectedSub.translationStatus && (
+                    <div className="pt-1">
+                      <StatusBadge status={selectedSub.translationStatus} type="translation" />
+                    </div>
+                  )}
                 </div>
+
+                {/* Hiệu đính bản dịch EN — một vòng đời, công bố VI + EN cùng lúc */}
+                {isProofreadStage && (
+                  <div className="border border-sky-200 bg-sky-50/60 rounded-sm p-3 space-y-3">
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Hiệu đính bản dịch tiếng Anh (FR-065)
+                      </h4>
+                      <p className="text-[11px] text-slate-600">
+                        Bản EN gắn 1-1 với bản VI, không có vòng phê duyệt riêng. Hiệu đính xong
+                        mới mở được nút công bố, và hai bản sẽ đăng cùng lúc.
+                      </p>
+                      <p className="text-[11px] text-slate-500 italic">
+                        Phạm vi dịch: tiêu đề và nội dung tin — không dịch file đính kèm.
+                      </p>
+                    </div>
+
+                    {/* Hai cột song song VI | EN (AC-065-3) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Bản gốc (VI)
+                        </div>
+                        <div className="p-2 bg-white border border-slate-200 rounded-sm text-[11px] text-slate-800 font-medium">
+                          {selectedSub.titleVi}
+                        </div>
+                        <div className="p-2 bg-white border border-slate-200 rounded-sm text-[11px] text-slate-700 min-h-[80px]">
+                          {String(selectedSub.payload?.summary_note || 'Không có nội dung tóm tắt.')}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-[10px] font-bold text-sky-700 uppercase tracking-widest">
+                          Bản dịch (EN) — sửa được
+                        </div>
+                        <input
+                          type="text"
+                          value={draftTitleEn}
+                          onChange={(e) => setDraftTitleEn(e.target.value)}
+                          placeholder="Tiêu đề tiếng Anh"
+                          className="w-full px-2 py-2 border border-sky-300 rounded-sm text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                        <textarea
+                          rows={4}
+                          value={draftContentEn}
+                          onChange={(e) => setDraftContentEn(e.target.value)}
+                          placeholder="Nội dung tiếng Anh"
+                          className="w-full px-2 py-2 border border-sky-300 rounded-sm text-[11px] bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        onSaveTranslation(selectedSub.id, draftTitleEn.trim(), draftContentEn.trim())
+                      }
+                      disabled={!draftTitleEn.trim() || !draftContentEn.trim()}
+                      className={`w-full px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-wider shadow-xs ${
+                        draftTitleEn.trim() && draftContentEn.trim()
+                          ? 'bg-sky-600 hover:bg-sky-700 text-white cursor-pointer'
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Lưu bản hiệu đính
+                    </button>
+                  </div>
+                )}
 
                 <WorkflowActionBar
                   currentStatus={selectedSub.status}
@@ -321,11 +429,15 @@ export const DisclosureModule: React.FC<DisclosureModuleProps> = ({
                   currentUserId={currentUserId}
                   reviewedAt={selectedSub.reviewedAt}
                   approvedAt={selectedSub.approvedAt}
+                  needsTranslation={needsTranslation}
+                  translationStatus={selectedSub.translationStatus}
                   onAction={(actionCode, comment, reason) => {
                     if (actionCode === 'REVIEW') {
                       onReviewSubmission(selectedSub.id);
-                    } else if (actionCode === 'APPROVE' || actionCode === 'PUBLISH') {
+                    } else if (actionCode === 'APPROVE') {
                       onApproveSubmission(selectedSub.id, comment || '');
+                    } else if (actionCode === 'PUBLISH') {
+                      onPublishBilingual(selectedSub.id, comment || '');
                     } else if (actionCode === 'REJECT' || actionCode === 'RETURN') {
                       onRejectSubmission(selectedSub.id, reason || '');
                     } else if (actionCode === 'HIDE') {

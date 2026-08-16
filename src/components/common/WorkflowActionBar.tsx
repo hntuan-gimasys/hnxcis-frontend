@@ -20,6 +20,13 @@ interface WorkflowActionBarProps {
   feePaymentStatus?: string;
   reviewedAt?: string;
   approvedAt?: string;
+  /**
+   * Vòng đời song ngữ (FR-065): mẫu tin thuộc nhóm dịch tự động thì bản EN phải
+   * qua hiệu đính (`HUMAN_REVIEWED`) mới công bố được, và công bố VI + EN là MỘT
+   * hành động duy nhất — không có vòng duyệt riêng cho bản EN.
+   */
+  needsTranslation?: boolean;
+  translationStatus?: string;
 }
 
 export const WorkflowActionBar: React.FC<WorkflowActionBarProps> = ({
@@ -31,6 +38,8 @@ export const WorkflowActionBar: React.FC<WorkflowActionBarProps> = ({
   feePaymentStatus,
   reviewedAt,
   approvedAt,
+  needsTranslation = false,
+  translationStatus,
 }) => {
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -144,15 +153,32 @@ export const WorkflowActionBar: React.FC<WorkflowActionBarProps> = ({
           </>
         )}
 
-        {currentStatus === 'APPROVED' && (
-          <button
-            onClick={() => handleTriggerAction('PUBLISH')}
-            className="inline-flex items-center space-x-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-lg text-xs font-semibold shadow-xs"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span>Phê duyệt & Công bố lên Website</span>
-          </button>
-        )}
+        {currentStatus === 'APPROVED' &&
+          (() => {
+            const waitingProofread =
+              needsTranslation && translationStatus !== 'HUMAN_REVIEWED';
+            return (
+              <button
+                disabled={waitingProofread}
+                title={
+                  waitingProofread
+                    ? 'Bản dịch tiếng Anh phải được hiệu đính trước khi công bố (FR-065).'
+                    : undefined
+                }
+                onClick={() => handleTriggerAction('PUBLISH')}
+                className={`inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg text-xs font-semibold shadow-xs ${
+                  waitingProofread
+                    ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    : 'bg-teal-600 hover:bg-teal-500'
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>
+                  {needsTranslation ? 'Công bố thông tin VI + EN' : 'Công bố lên Website'}
+                </span>
+              </button>
+            );
+          })()}
 
         {currentStatus === 'PUBLISHED' && (
           <button

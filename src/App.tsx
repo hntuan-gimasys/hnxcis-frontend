@@ -32,6 +32,7 @@ import {
   FeeRecord,
 } from './types/hnx';
 import { notificationService } from './services/notificationService';
+import { buildAiDraftTranslation } from './data/translationGlossary';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { AuditHistoryModal } from './components/common/AuditHistoryModal';
@@ -154,7 +155,57 @@ export default function App() {
     alert('Đã hoàn tất soát xét, hồ sơ được trình Lãnh đạo Sở phê duyệt.');
   };
 
+  /**
+   * Phê duyệt bản tiếng Việt (FR-033). KHÔNG công bố ngay — mẫu tin thuộc nhóm
+   * được cấu hình dịch sẽ sinh bản EN nháp và chờ chuyên viên hiệu đính; việc
+   * công bố VI + EN là một hành động riêng, duy nhất (PRD v1.2 §7.4 FR-065).
+   */
   const handleApproveSubmission = (subId: number, comment: string) => {
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
+
+    const template = templates.find((t) => t.id === sub.templateId);
+    // AC-065-6: nhóm tin không bật auto_translate thì không sinh bản dịch.
+    const needsTranslation = Boolean(template?.autoTranslate);
+    const now = new Date().toISOString();
+
+    const draft = needsTranslation
+      ? buildAiDraftTranslation(sub.titleVi, String(sub.payload?.summary_note || ''))
+      : null;
+
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? {
+              ...s,
+              status: 'APPROVED',
+              approvedAt: now,
+              updatedAt: now,
+              updatedBy: currentUser.id,
+              translationStatus: needsTranslation ? 'AI_DRAFT' : 'NONE',
+              ...(draft ? { titleEn: draft.titleEn, contentEn: draft.contentEn } : {}),
+            }
+          : s
+      )
+    );
+
+    logSubmissionTransition(
+      sub,
+      'APPROVE',
+      sub.status,
+      { status: 'APPROVED', translationStatus: needsTranslation ? 'AI_DRAFT' : 'NONE' },
+      comment || 'Phê duyệt bản tiếng Việt'
+    );
+
+    alert(
+      needsTranslation
+        ? 'Đã phê duyệt bản tiếng Việt. Hệ thống đã sinh bản dịch tiếng Anh — vui lòng hiệu đính trước khi công bố.'
+        : 'Đã phê duyệt bản tiếng Việt. Mẫu tin này không thuộc nhóm dịch tự động, có thể công bố ngay.'
+    );
+  };
+
+  /** Lưu kết quả hiệu đính bản EN: AI_DRAFT -> HUMAN_REVIEWED (AC-065-4). */
+  const handleSaveTranslation = (subId: number, titleEn: string, contentEn: string) => {
     const sub = submissions.find((s) => s.id === subId);
     if (!sub) return;
 
@@ -162,18 +213,93 @@ export default function App() {
     setSubmissions((prev) =>
       prev.map((s) =>
         s.id === subId
-          ? { ...s, status: 'PUBLISHED', isPublic: true, approvedAt: now, publishedAt: now }
+          ? {
+              ...s,
+              titleEn,
+              contentEn,
+              translationStatus: 'HUMAN_REVIEWED',
+              translationReviewedAt: now,
+              translationReviewedBy: currentUser.id,
+              updatedAt: now,
+              updatedBy: currentUser.id,
+            }
           : s
       )
     );
+
+    setAuditLogs((prev) => [
+      {
+        id: prev.reduce((max, l) => Math.max(max, l.id), 0) + 1,
+        occurredAt: now,
+        actorId: currentUser.id,
+        actorName: currentUser.fullName,
+        actorRole: currentUser.roleCode,
+        actorIp: '127.0.0.1',
+        correlationId: `req-${Date.now()}`,
+        entityType: 'SUBMISSION',
+        entityId: sub.id,
+        entityLabel: sub.submissionNo,
+        action: 'UPDATE',
+        beforeJson: { translationStatus: sub.translationStatus || 'AI_DRAFT' },
+        afterJson: { translationStatus: 'HUMAN_REVIEWED' },
+        diffJson: { translationStatus: `${sub.translationStatus || 'AI_DRAFT'} -> HUMAN_REVIEWED` },
+        reason: 'Hiệu đính bản dịch tiếng Anh',
+        result: 'SUCCESS',
+      },
+      ...prev,
+    ]);
+
+    alert('Đã lưu bản hiệu đính tiếng Anh. Hồ sơ sẵn sàng công bố song ngữ.');
+  };
+
+  /**
+   * Công bố VI + EN trong MỘT hành động duy nhất — hai bản có cùng `publishedAt`
+   * (AC-065-4). Không có vòng phê duyệt riêng cho bản EN.
+   */
+  const handlePublishBilingual = (subId: number, comment: string) => {
+    const sub = submissions.find((s) => s.id === subId);
+    if (!sub) return;
+
+    const template = templates.find((t) => t.id === sub.templateId);
+    const needsTranslation = Boolean(template?.autoTranslate);
+
+    if (needsTranslation && sub.translationStatus !== 'HUMAN_REVIEWED') {
+      alert(
+        'Chưa công bố được: bản dịch tiếng Anh phải qua bước hiệu đính của chuyên viên trước khi công bố.'
+      );
+      return;
+    }
+
+    const now = new Date().toISOString();
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === subId
+          ? {
+              ...s,
+              status: 'PUBLISHED',
+              isPublic: true,
+              publishedAt: now,
+              updatedAt: now,
+              updatedBy: currentUser.id,
+              translationStatus: needsTranslation ? 'APPROVED' : s.translationStatus,
+            }
+          : s
+      )
+    );
+
     logSubmissionTransition(
       sub,
       'PUBLISH',
       sub.status,
       { status: 'PUBLISHED', isPublic: true },
-      comment || 'Chấp thuận công bố thông tin'
+      comment || (needsTranslation ? 'Công bố thông tin VI + EN' : 'Công bố thông tin')
     );
-    alert('Đã phê duyệt và công bố thông tin thành công!');
+
+    alert(
+      needsTranslation
+        ? 'Đã công bố đồng thời bản tiếng Việt và bản tiếng Anh lên Corporate News.'
+        : 'Đã công bố thông tin lên Corporate News.'
+    );
   };
 
   const handleRejectSubmission = (subId: number, reason: string) => {
@@ -397,8 +523,11 @@ export default function App() {
                   submissions={submissions}
                   organizations={organizations}
                   alerts={alerts}
+                  templates={templates}
                   onReviewSubmission={handleReviewSubmission}
                   onApproveSubmission={handleApproveSubmission}
+                  onSaveTranslation={handleSaveTranslation}
+                  onPublishBilingual={handlePublishBilingual}
                   onRejectSubmission={handleRejectSubmission}
                   onHideSubmission={handleHideSubmission}
                   onAuditHistory={handleOpenAuditHistory}

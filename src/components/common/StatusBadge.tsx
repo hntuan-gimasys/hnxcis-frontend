@@ -23,8 +23,28 @@ interface StatusBadgeProps {
    * không phải một. Luôn truyền `type` khi render hai loại này, vì chúng có
    * những mã trùng tên (WARNING, CONTROL, TRADING_HALT) nhưng nhãn khác nhau.
    */
-  type?: 'security' | 'surveillance' | 'submission' | 'case' | 'generic';
+  type?: 'security' | 'surveillance' | 'submission' | 'translation' | 'case' | 'generic';
 }
+
+/** Trạng thái bản dịch EN trong vòng đời song ngữ một bản ghi (FR-065). */
+const TRANSLATION_STATUS: Record<string, { label: string; bgClass: string }> = {
+  NONE: {
+    label: 'Không thuộc nhóm tin dịch tự động',
+    bgClass: 'bg-slate-100 text-slate-600 border-slate-300',
+  },
+  AI_DRAFT: {
+    label: 'Đã dịch tự động — chờ hiệu đính',
+    bgClass: 'bg-amber-50 text-amber-800 border-amber-300',
+  },
+  HUMAN_REVIEWED: {
+    label: 'Đã hiệu đính — sẵn sàng công bố',
+    bgClass: 'bg-sky-50 text-sky-700 border-sky-300',
+  },
+  APPROVED: {
+    label: 'Đã công bố song ngữ',
+    bgClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
+};
 
 /** Picklist 1 — Trạng thái chứng khoán, đúng 5 giá trị. */
 const SECURITY_STATUS: Record<SecurityStatus, { label: string; bgClass: string }> = {
@@ -54,7 +74,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, type = 'generi
 
   // Hai danh mục dưới đây chỉ tra khi được chỉ định `type` — suy đoán theo mã sẽ
   // sai, vì WARNING/CONTROL/TRADING_HALT tồn tại ở CẢ HAI với ý nghĩa khác nhau.
-  if (type === 'surveillance') {
+  if (type === 'translation') {
+    const entry = TRANSLATION_STATUS[status];
+    if (entry) {
+      label = entry.label;
+      bgClass = entry.bgClass;
+    }
+  } else if (type === 'surveillance') {
     const entry = SURVEILLANCE_STATUS[status as SurveillanceStatus];
     if (entry) {
       label = entry.label;
