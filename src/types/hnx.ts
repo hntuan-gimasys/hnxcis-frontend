@@ -14,6 +14,11 @@ export type UserRoleCode =
   | 'ROLE_TTTP_MANAGER'
   | 'ROLE_TTTT_STAFF'
   | 'ROLE_TTTT_MANAGER'
+  // P.CNTT — phòng Công nghệ thông tin của Sở. URD có 2 vai trò này mà PRD v1.0
+  // bỏ sót (PRD v1.2 §2.1, §13.2 S13). Lưu ý: KHÔNG đồng nhất với Admin (quản trị
+  // hệ thống) hay Adp (quản trị nghiệp vụ phòng) — đó là các vai trò riêng.
+  | 'ROLE_CNTT_STAFF'
+  | 'ROLE_CNTT_MANAGER'
   | 'ROLE_HTGD_STAFF'
   | 'ROLE_HNX_EXEC'
   | 'ROLE_ORG_STAFF'

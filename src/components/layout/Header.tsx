@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { UserAccount, NotificationItem } from '../../types/hnx';
+import { getRoleLabel } from '../../data/roleCatalog';
 
 interface HeaderProps {
   activePortal: 'internal' | 'corporate' | 'public';
@@ -199,8 +200,8 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="font-semibold text-white truncate max-w-[130px]">
                     {currentUser.fullName}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono">
-                    {currentUser.roleCode}
+                  <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                    {getRoleLabel(currentUser.roleCode)}
                   </div>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
@@ -225,7 +226,8 @@ export const Header: React.FC<HeaderProps> = ({
                       }`}
                     >
                       <span className="font-medium text-slate-900">{user.fullName}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">{user.roleCode}</span>
+                      <span className="text-[10px] text-slate-600">{getRoleLabel(user.roleCode)}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{user.roleCode}</span>
                     </button>
                   ))}
                 </div>

@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { UserAccount } from '../../types/hnx';
+import { ROLE_CATALOG, getRoleLabel } from '../../data/roleCatalog';
 import { DynamicTable, ColumnDef } from '../common/DynamicTable';
 
 interface AdminModuleProps {
@@ -26,6 +27,18 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
   currentUser,
 }) => {
   const [showBuilder, setShowBuilder] = useState(false);
+
+  /**
+   * Lãnh đạo P.CNTT được xem cấu hình và tài khoản để vận hành, nhưng không sửa —
+   * quyền sửa thuộc Admin / Adp (PRD v1.2 §2.1: P.CNTT ≠ Admin ≠ Adp).
+   */
+  const isReadOnly = currentUser.roleCode === 'ROLE_CNTT_MANAGER';
+
+  /** Gom vai trò theo đơn vị để danh sách phân quyền đọc được theo phòng ban. */
+  const rolesByUnit = ROLE_CATALOG.reduce<Record<string, typeof ROLE_CATALOG>>((acc, role) => {
+    acc[role.unitVi] = [...(acc[role.unitVi] || []), role];
+    return acc;
+  }, {});
 
   const userColumns: ColumnDef<UserAccount>[] = [
     {
@@ -51,9 +64,12 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
       key: 'roleCode',
       headerVi: 'Vai trò (ABAC Role)',
       render: (row) => (
-        <span className="px-2 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-xs">
-          {row.roleCode}
-        </span>
+        <div className="space-y-1">
+          <div className="text-xs font-bold text-slate-900">{getRoleLabel(row.roleCode)}</div>
+          <span className="inline-block px-2 py-0.5 bg-slate-900 text-white font-mono text-[10px] font-bold rounded-xs">
+            {row.roleCode}
+          </span>
+        </div>
       ),
     },
     {
@@ -77,6 +93,17 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-1">
           FR-046 → FR-065: Form / Workflow / Rule Builder, Phân quyền ABAC & Nhật ký Audit Log
         </p>
+
+        {isReadOnly && (
+          <div className="mt-3 flex items-start space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-sm text-xs text-amber-900">
+            <Shield className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Chế độ chỉ đọc — {getRoleLabel(currentUser.roleCode)}.</span>{' '}
+              Anh/Chị xem được cấu hình và danh sách tài khoản để phục vụ vận hành, nhưng thao tác
+              tạo/sửa thuộc quyền Quản trị hệ thống (Admin) và Quản trị nghiệp vụ phòng (Adp).
+            </div>
+          </div>
+        )}
       </div>
 
       {activeModule === 'admin_system' && (
@@ -85,12 +112,14 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
               Trình Kéo thả Cấu hình Biểu mẫu & Quy trình (Form & Workflow Builder)
             </h3>
-            <button
-              onClick={() => setShowBuilder(!showBuilder)}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-sm uppercase tracking-wider shadow-xs"
-            >
-              {showBuilder ? 'Đóng Builder' : '+ Mở Visual Drag & Drop Builder'}
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={() => setShowBuilder(!showBuilder)}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-sm uppercase tracking-wider shadow-xs"
+              >
+                {showBuilder ? 'Đóng Builder' : '+ Mở Visual Drag & Drop Builder'}
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
@@ -135,15 +164,52 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
               Danh sách Tài khoản & Phân quyền dựa trên Thuộc tính (ABAC Authorization)
             </h3>
-            <button
-              onClick={() => alert('Thêm người dùng thử nghiệm mới!')}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-sm text-xs font-bold uppercase tracking-wider shadow-xs"
-            >
-              + Tạo Tài khoản
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={() => alert('Thêm người dùng thử nghiệm mới!')}
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-sm text-xs font-bold uppercase tracking-wider shadow-xs"
+              >
+                + Tạo Tài khoản
+              </button>
+            )}
           </div>
 
           <DynamicTable data={users} columns={userColumns} />
+
+          {/* Danh mục vai trò đầy đủ — nguồn cho dropdown chọn vai trò khi tạo/sửa tài khoản */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Danh mục Vai trò Hệ thống ({ROLE_CATALOG.length} vai trò)
+              </h3>
+              <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
+                Bảng "Người sử dụng hệ thống" — URD
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {Object.entries(rolesByUnit).map(([unit, roles]) => (
+                <div key={unit} className="p-4 bg-slate-50 border border-slate-200 rounded-sm space-y-2">
+                  <div className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">
+                    {unit}
+                  </div>
+                  <div className="space-y-2">
+                    {roles.map((role) => (
+                      <div key={role.code} className="space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-slate-800">{role.labelVi}</span>
+                          <span className="px-1.5 py-0.5 bg-white border border-slate-300 text-slate-600 font-mono text-[10px] font-bold rounded-xs">
+                            {role.code}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">{role.descriptionVi}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

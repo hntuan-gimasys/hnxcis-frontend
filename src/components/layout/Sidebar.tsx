@@ -97,6 +97,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isTTTP = userRole.includes('TTTP') || isSysAdmin || userRole === 'ROLE_HNX_EXEC';
   const isTTTT = userRole.includes('TTTT') || isSysAdmin || userRole === 'ROLE_HNX_EXEC';
 
+  // P.CNTT vận hành hệ thống, không xử lý nghiệp vụ niêm yết / CBTT. Lãnh đạo
+  // P.CNTT xem được màn hình quản trị nhưng ở chế độ chỉ đọc (xem AdminModule).
+  const isCNTTManager = userRole === 'ROLE_CNTT_MANAGER';
+  const canSeeAdmin = isSysAdmin || isCNTTManager;
+
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 hidden md:block">
       <div className="p-4 border-b border-slate-800">
@@ -286,10 +291,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* Admin */}
-        {isSysAdmin && (
+        {canSeeAdmin && (
           <div className="space-y-1">
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
-              Quản trị Hệ thống (Admin)
+              {isCNTTManager ? 'Quản trị Hệ thống (Chỉ đọc)' : 'Quản trị Hệ thống (Admin)'}
             </div>
 
             <button
