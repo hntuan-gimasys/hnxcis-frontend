@@ -28,7 +28,7 @@ import {
 import {
   INITIAL_ORGANIZATIONS,
   INITIAL_TEMPLATES,
-  INITIAL_FIELD_DEFINITIONS,
+  getTemplateFields,
 } from '../../data/mockData';
 import { StatusBadge } from '../common/StatusBadge';
 import { DynamicForm } from '../common/DynamicForm';
@@ -56,7 +56,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
   submissions = [],
   obligations = [],
   templates = INITIAL_TEMPLATES,
-  fields = [],
+  fields,
   userRole = 'ROLE_ORG_STAFF',
   onNewSubmission,
   onSubmitNewFiling,
@@ -409,7 +409,12 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
             <DynamicForm
               key={selectedTemplate.id}
               template={selectedTemplate}
-              fields={fields}
+              fields={
+                // Chỉ lấy trường của đúng biểu mẫu đang lập, không đổ toàn bộ.
+                (fields || getTemplateFields(selectedTemplate.id)).filter(
+                  (f) => f.templateId === selectedTemplate.id
+                )
+              }
               userRole={userRole}
               orgName={organization?.shortName || 'VNM'}
               symbol="VNM"

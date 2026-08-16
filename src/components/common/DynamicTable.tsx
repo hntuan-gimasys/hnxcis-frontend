@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Download, Filter, RefreshCw } from 'lucide-react';
 
 export interface ColumnDef<T> {
@@ -44,10 +44,19 @@ export function DynamicTable<T extends { id: number }>({
   });
 
   const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+
+  // Không reset thì sau khi lọc/đổi dữ liệu, trang hiện tại có thể vượt quá số
+  // trang mới và bảng hiện "không có dữ liệu" dù kết quả vẫn còn.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, data]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedData = filteredData.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
@@ -116,7 +125,7 @@ export function DynamicTable<T extends { id: number }>({
               paginatedData.map((row, idx) => (
                 <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-4 py-3 text-xs text-slate-500">
-                    {(currentPage - 1) * pageSize + idx + 1}
+                    {(safePage - 1) * pageSize + idx + 1}
                   </td>
                   {columns.map((col) => (
                     <td key={col.key} className="px-4 py-3 text-sm text-slate-800">
@@ -138,22 +147,22 @@ export function DynamicTable<T extends { id: number }>({
       {/* Pagination */}
       <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
         <div>
-          Hiển thị {(currentPage - 1) * pageSize + 1} -{' '}
-          {Math.min(currentPage * pageSize, filteredData.length)} trên tổng số {filteredData.length} kết quả
+          Hiển thị {filteredData.length === 0 ? 0 : (safePage - 1) * pageSize + 1} -{' '}
+          {Math.min(safePage * pageSize, filteredData.length)} trên tổng số {filteredData.length} kết quả
         </div>
         <div className="flex items-center space-x-1">
           <button
-            disabled={currentPage === 1}
+            disabled={safePage === 1}
             onClick={() => setCurrentPage((p) => p - 1)}
             className="px-2.5 py-1 border border-slate-300 rounded-md bg-white hover:bg-slate-100 disabled:opacity-50"
           >
             Trước
           </button>
           <span className="px-2 font-medium">
-            Trang {currentPage} / {totalPages}
+            Trang {safePage} / {totalPages}
           </span>
           <button
-            disabled={currentPage === totalPages}
+            disabled={safePage === totalPages}
             onClick={() => setCurrentPage((p) => p + 1)}
             className="px-2.5 py-1 border border-slate-300 rounded-md bg-white hover:bg-slate-100 disabled:opacity-50"
           >

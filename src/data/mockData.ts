@@ -317,6 +317,9 @@ export const INITIAL_FIELD_DEFINITIONS: FieldDefinition[] = [
   { id: 6, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'total_assets', labelVi: 'Tổng tài sản (VND)', dataType: 'DECIMAL', isRepeatable: false, nodeType: 'FIELD', sortOrder: 6, hasData: true },
   { id: 7, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'owner_equity', labelVi: 'Vốn chủ sở hữu (VND)', dataType: 'DECIMAL', isRepeatable: false, nodeType: 'FIELD', sortOrder: 7, hasData: true },
   { id: 8, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'summary_note', labelVi: 'Tóm tắt nội dung giải trình', dataType: 'LONGTEXT', isRepeatable: false, nodeType: 'FIELD', sortOrder: 8, hasData: true },
+  { id: 9, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'event_date', labelVi: 'Ngày phát sinh sự kiện', dataType: 'DATE', isRepeatable: false, nodeType: 'FIELD', sortOrder: 9, hasData: true },
+  { id: 10, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'disclosure_doc', labelVi: 'Tệp văn bản công bố (PDF)', dataType: 'FILE', isRepeatable: false, nodeType: 'FIELD', sortOrder: 10, hasData: true },
+  { id: 11, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, fieldCode: 'title_vi', labelVi: 'Tiêu đề thông báo', dataType: 'TEXT', isRepeatable: false, nodeType: 'FIELD', sortOrder: 11, hasData: true },
 ];
 
 export const INITIAL_TEMPLATES: TemplateDefinition[] = [
@@ -386,6 +389,44 @@ export const INITIAL_TEMPLATES: TemplateDefinition[] = [
     autoTranslate: true,
   },
 ];
+
+/**
+ * Nối FieldDefinition vào từng biểu mẫu. Thiếu mảng này thì DynamicForm không
+ * render được trường nào và E-Form của Cổng Doanh nghiệp là form rỗng.
+ */
+export const INITIAL_TEMPLATE_FIELDS: TemplateField[] = [
+  // Template 1 - Báo cáo tài chính quý
+  { id: 1, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 1, sectionCode: 'GENERAL', sortOrder: 1, colSpan: 6, isRequired: true, isReadonly: false, isIndexed: true },
+  { id: 2, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 2, sectionCode: 'GENERAL', sortOrder: 2, colSpan: 6, isRequired: true, isReadonly: false, isIndexed: true },
+  { id: 3, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 3, sectionCode: 'AUDIT', sortOrder: 3, colSpan: 6, isRequired: true, isReadonly: false, isIndexed: false },
+  { id: 4, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 4, sectionCode: 'AUDIT', sortOrder: 4, colSpan: 6, isRequired: true, isReadonly: false, isIndexed: false },
+  { id: 5, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 5, sectionCode: 'FINANCIAL', sortOrder: 5, colSpan: 4, isRequired: true, isReadonly: false, isIndexed: true },
+  { id: 6, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 6, sectionCode: 'FINANCIAL', sortOrder: 6, colSpan: 4, isRequired: true, isReadonly: false, isIndexed: false },
+  { id: 7, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 7, sectionCode: 'FINANCIAL', sortOrder: 7, colSpan: 4, isRequired: true, isReadonly: false, isIndexed: false },
+  { id: 8, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 8, sectionCode: 'FINANCIAL', sortOrder: 8, colSpan: 12, isRequired: false, isReadonly: false, isIndexed: false },
+  { id: 9, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 1, fieldDefinitionId: 10, sectionCode: 'ATTACHMENT', sortOrder: 9, colSpan: 12, isRequired: true, isReadonly: false, isIndexed: false },
+
+  // Template 2 - Tin CBTT Bất thường 24h
+  { id: 10, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 2, fieldDefinitionId: 9, sectionCode: 'GENERAL', sortOrder: 1, colSpan: 6, isRequired: true, isReadonly: false, isIndexed: true },
+  { id: 11, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 2, fieldDefinitionId: 8, labelOverrideVi: 'Nội dung công bố bất thường', sectionCode: 'GENERAL', sortOrder: 2, colSpan: 12, isRequired: true, isReadonly: false, isIndexed: false },
+  { id: 12, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 2, fieldDefinitionId: 10, sectionCode: 'ATTACHMENT', sortOrder: 3, colSpan: 12, isRequired: true, isReadonly: false, isIndexed: false },
+
+  // Template 3 - Thông báo chính thức từ Sở HNX
+  { id: 13, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 3, fieldDefinitionId: 11, sectionCode: 'GENERAL', sortOrder: 1, colSpan: 12, isRequired: true, isReadonly: false, isIndexed: true, editableForRoles: ['ROLE_QLNY_STAFF', 'ROLE_TTTT_STAFF', 'ROLE_SYS_ADMIN'] },
+  { id: 14, createdAt: '2024-01-01T00:00:00Z', createdBy: 1, versionNo: 1, isCurrent: true, templateId: 3, fieldDefinitionId: 8, labelOverrideVi: 'Nội dung thông báo', sectionCode: 'GENERAL', sortOrder: 2, colSpan: 12, isRequired: true, isReadonly: false, isIndexed: false, editableForRoles: ['ROLE_QLNY_STAFF', 'ROLE_TTTT_STAFF', 'ROLE_SYS_ADMIN'] },
+];
+
+/** Nối TemplateField với FieldDefinition tương ứng cho DynamicForm. */
+export const getTemplateFields = (
+  templateId: number
+): (TemplateField & { fieldDef: FieldDefinition })[] =>
+  INITIAL_TEMPLATE_FIELDS.filter((tf) => tf.templateId === templateId)
+    .map((tf) => {
+      const fieldDef = INITIAL_FIELD_DEFINITIONS.find((fd) => fd.id === tf.fieldDefinitionId);
+      return fieldDef ? { ...tf, fieldDef } : null;
+    })
+    .filter((tf): tf is TemplateField & { fieldDef: FieldDefinition } => tf !== null)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
 export const INITIAL_WORKFLOWS: WorkflowDefinition[] = [
   {

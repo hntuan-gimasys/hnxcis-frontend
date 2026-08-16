@@ -24,6 +24,32 @@ interface DynamicFormProps {
   symbol?: string;
 }
 
+const SECTION_LABELS: Record<string, string> = {
+  GENERAL: 'Thông tin chung',
+  AUDIT: 'Thông tin kiểm toán',
+  FINANCIAL: 'Chỉ tiêu tài chính',
+  ATTACHMENT: 'Tài liệu đính kèm',
+};
+
+/**
+ * Tailwind 4 quét class tĩnh, nên không dùng được `sm:col-span-${n}` sinh động —
+ * class đó sẽ không được tạo ra và mọi trường luôn chiếm trọn hàng.
+ */
+const COL_SPAN_CLASSES: Record<number, string> = {
+  3: 'col-span-12 sm:col-span-3',
+  4: 'col-span-12 sm:col-span-4',
+  6: 'col-span-12 sm:col-span-6',
+  8: 'col-span-12 sm:col-span-8',
+  9: 'col-span-12 sm:col-span-9',
+  12: 'col-span-12',
+};
+
+/** Hiển thị giá trị ngày (YYYY-MM-DD) theo định dạng Việt Nam dd/MM/yyyy. */
+const formatDateVi = (value: string): string => {
+  const [y, m, d] = (value || '').split('-');
+  return y && m && d ? `${d}/${m}/${y}` : '';
+};
+
 export const DynamicForm: React.FC<DynamicFormProps> = ({
   template,
   fields,
@@ -88,14 +114,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         return (
           <div key={sectionCode} className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
             <h3 className="text-base font-semibold text-slate-900 border-b border-slate-100 pb-3 mb-4">
-              {sectionCode === 'GENERAL' ? 'Thông tin chung' : sectionCode}
+              {SECTION_LABELS[sectionCode] || sectionCode}
             </h3>
 
             <div className="grid grid-cols-12 gap-4">
               {sectionFields.map((tf) => {
                 const field = tf.fieldDef;
                 const fieldError = errors.find((e) => e.fieldCode === field.fieldCode);
-                const colSpanClass = `col-span-12 sm:col-span-${tf.colSpan || 12}`;
+                const colSpanClass = COL_SPAN_CLASSES[tf.colSpan] || COL_SPAN_CLASSES[12];
                 const label = tf.labelOverrideVi || field.labelVi;
                 const isFieldReadonly =
                   readonly ||
@@ -106,7 +132,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                     !tf.editableForRoles.includes('*'));
 
                 return (
-                  <div key={field.fieldCode} className={`col-span-12 sm:col-span-${tf.colSpan || 12}`}>
+                  <div key={field.fieldCode} className={colSpanClass}>
                     <label className="block text-sm font-medium text-slate-700 mb-1">
                       {label} {tf.isRequired && <span className="text-red-500">*</span>}
                     </label>
@@ -186,6 +212,90 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                           </>
                         )}
                       </select>
+                    )}
+
+                    {(field.dataType === 'DATE' || field.dataType === 'DATETIME') && (
+                      <>
+                        <input
+                          type={field.dataType === 'DATE' ? 'date' : 'datetime-local'}
+                          disabled={isFieldReadonly}
+                          value={payload[field.fieldCode] || ''}
+                          onChange={(e) => handleChange(field.fieldCode, e.target.value)}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                            fieldError
+                              ? 'border-red-300 focus:ring-red-400'
+                              : 'border-slate-300 focus:ring-blue-500'
+                          } ${isFieldReadonly ? 'bg-slate-100 text-slate-600' : 'bg-white'}`}
+                        />
+                        {field.dataType === 'DATE' && payload[field.fieldCode] && (
+                          <p className="mt-1 text-xs text-slate-500 font-mono">
+                            {formatDateVi(payload[field.fieldCode])}
+                          </p>
+                        )}
+                      </>
+                    )}
+
+                    {field.dataType === 'FILE' && (
+                      <div className="space-y-1">
+                        <input
+                          type="file"
+                          disabled={isFieldReadonly}
+                          onChange={(e) =>
+                            handleChange(field.fieldCode, e.target.files?.[0]?.name || '')
+                          }
+                          className={`w-full text-sm text-slate-700 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 border rounded-lg px-3 py-2 ${
+                            fieldError ? 'border-red-300' : 'border-slate-300'
+                          }`}
+                        />
+                        {payload[field.fieldCode] && (
+                          <p className="text-xs text-slate-600">
+                            Tệp đã chọn: <span className="font-medium">{payload[field.fieldCode]}</span>
+                          </p>
+                        )}
+                        <p className="text-[11px] text-slate-400">
+                          Bản mẫu chỉ ghi nhận tên tệp, chưa tải tệp lên máy chủ.
+                        </p>
+                      </div>
+                    )}
+
+                    {(field.dataType === 'RICHTEXT' || field.dataType === 'TABLE') && (
+                      <textarea
+                        rows={4}
+                        disabled={isFieldReadonly}
+                        value={payload[field.fieldCode] || ''}
+                        onChange={(e) => handleChange(field.fieldCode, e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                          fieldError
+                            ? 'border-red-300 focus:ring-red-400'
+                            : 'border-slate-300 focus:ring-blue-500'
+                        } ${isFieldReadonly ? 'bg-slate-100 text-slate-600' : 'bg-white'}`}
+                        placeholder={`Nhập ${label.toLowerCase()}...`}
+                      />
+                    )}
+
+                    {field.dataType === 'MULTI_PICKLIST' && (
+                      <select
+                        multiple
+                        disabled={isFieldReadonly}
+                        value={payload[field.fieldCode] || []}
+                        onChange={(e) =>
+                          handleChange(
+                            field.fieldCode,
+                            Array.from(e.target.selectedOptions, (o) => o.value)
+                          )
+                        }
+                        className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                          fieldError
+                            ? 'border-red-300 focus:ring-red-400'
+                            : 'border-slate-300 focus:ring-blue-500'
+                        } ${isFieldReadonly ? 'bg-slate-100 text-slate-600' : 'bg-white'}`}
+                      />
+                    )}
+
+                    {field.dataType === 'FORMULA' && (
+                      <div className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-600 font-mono">
+                        {payload[field.fieldCode] ?? '(Tự động tính)'}
+                      </div>
                     )}
 
                     {field.dataType === 'BOOLEAN' && (
