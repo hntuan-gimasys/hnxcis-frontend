@@ -1010,7 +1010,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     direction: 'OUTBOUND',
     recipientUserId: 4,
     recipientOrgId: 1,
-    senderName: 'Hệ thống HNX-CIS (Tự động)',
+    senderName: 'Hệ thống IMS/ICDS (Tự động)',
     channel: 'IN_APP',
     subject: 'Nhắc nộp Báo cáo Tài chính Bán niên 2026',
     body: 'Kính gửi VNM, thời hạn nộp Báo cáo Tài chính Bán niên 2026 còn 10 ngày làm việc. Vui lòng cập nhật đúng hạn.',

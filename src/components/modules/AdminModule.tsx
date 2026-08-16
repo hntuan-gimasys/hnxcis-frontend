@@ -72,7 +72,7 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
       {/* Title Header */}
       <div className="border-b border-slate-200 pb-4">
         <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-          Quản trị Hệ thống HNX-CIS (System Admin)
+          Quản trị Hệ thống IMS/ICDS (System Admin)
         </h1>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-1">
           FR-046 → FR-065: Form / Workflow / Rule Builder, Phân quyền ABAC & Nhật ký Audit Log

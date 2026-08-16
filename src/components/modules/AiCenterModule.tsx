@@ -86,7 +86,7 @@ Do sự cố hệ thống CNTT ngày 2026-08-05, Công ty xin giải trình vi�
   const [messages, setMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string }>>([
     {
       sender: 'ai',
-      text: 'Kính chào Anh/Chị! Tôi là Trợ lý AI HNX-CIS. Tôi có thể hỗ trợ tra cứu Thông tư 96/2020/TT-BTC, Nghị định 155/2020/NĐ-CP và Quy chế Niêm yết HNX. Anh/Chị cần tư vấn điều khoản nào?',
+      text: 'Kính chào Anh/Chị! Tôi là Trợ lý AI IMS/ICDS. Tôi có thể hỗ trợ tra cứu Thông tư 96/2020/TT-BTC, Nghị định 155/2020/NĐ-CP và Quy chế Niêm yết HNX. Anh/Chị cần tư vấn điều khoản nào?',
     },
   ]);
   const [chatInput, setChatInput] = useState('');
@@ -385,7 +385,7 @@ Do sự cố hệ thống CNTT ngày 2026-08-05, Công ty xin giải trình vi�
         <div className="flex items-center space-x-2">
           <Sparkles className="h-6 w-6 text-indigo-600" />
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Trung tâm Trợ lý Trí tuệ Nhân tạo HNX-CIS (AI Center)
+            Trung tâm Trợ lý Trí tuệ Nhân tạo IMS/ICDS (AI Center)
           </h1>
         </div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mt-1">

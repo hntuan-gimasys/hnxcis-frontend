@@ -51,14 +51,15 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="w-4 h-4 border-2 border-white rotate-45"></div>
             </div>
             <div>
+              {/* Tên & viết tắt chính thức theo URD (PRD v1.2 §0, §13.2 S16) */}
               <div className="font-bold text-sm sm:text-base tracking-tight text-white flex items-center space-x-2">
-                <span className="uppercase tracking-wider font-extrabold text-indigo-400">HNX-CIS</span>
+                <span className="uppercase tracking-wider font-extrabold text-indigo-400">IMS/ICDS</span>
                 <span className="text-[10px] bg-indigo-950/90 text-indigo-300 px-2 py-0.5 rounded-sm font-mono border border-indigo-700/80 uppercase font-bold tracking-widest">
-                  v1.0 (2026)
+                  v1.2 (2026)
                 </span>
               </div>
               <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider hidden sm:block">
-                Hệ thống Quản lý Niêm yết, Trái phiếu & Công bố thông tin HNX
+                Hệ thống tiếp nhận, quản lý khai thác và công bố thông tin doanh nghiệp
               </div>
             </div>
           </div>
@@ -74,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Building className="h-3.5 w-3.5" />
-              <span>Cổng Nội bộ HNX</span>
+              <span>IMS · Cổng Nội bộ</span>
             </button>
 
             <button
@@ -86,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Building2 className="h-3.5 w-3.5" />
-              <span>Cổng Doanh nghiệp</span>
+              <span>ICDS · Cổng Doanh nghiệp</span>
             </button>
 
             <button
@@ -241,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
               activePortal === 'internal' ? 'bg-indigo-600 text-white' : 'text-slate-400'
             }`}
           >
-            Nội bộ HNX
+            IMS · Nội bộ
           </button>
           <button
             onClick={() => setActivePortal('corporate')}
@@ -249,7 +250,7 @@ export const Header: React.FC<HeaderProps> = ({
               activePortal === 'corporate' ? 'bg-indigo-600 text-white' : 'text-slate-400'
             }`}
           >
-            Cổng DN
+            ICDS · Cổng DN
           </button>
           <button
             onClick={() => setActivePortal('public')}

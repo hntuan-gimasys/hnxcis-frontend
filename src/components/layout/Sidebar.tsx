@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 hidden md:block">
         <div className="p-4 border-b border-slate-800">
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Cổng Doanh nghiệp (Self-Service)
+            ICDS — Tiếp nhận Tin Công bố
           </div>
           <div className="text-sm font-bold text-white mt-1">Vinamilk (VNM)</div>
         </div>
@@ -101,9 +101,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0 hidden md:block">
       <div className="p-4 border-b border-slate-800">
         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          Cổng Nội bộ HNX
+          IMS — Quản lý &amp; Khai thác thông tin
         </div>
-        <div className="text-sm font-bold text-white mt-1">Phòng Ban HNX-CIS</div>
+        <div className="text-sm font-bold text-white mt-1">Cổng Nội bộ HNX</div>
       </div>
 
       <nav className="p-3 space-y-6 text-xs overflow-y-auto max-h-[calc(100vh-5rem)]">
