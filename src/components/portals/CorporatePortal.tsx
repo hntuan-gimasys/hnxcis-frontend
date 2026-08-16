@@ -73,6 +73,12 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
 
   const orgId = organization?.id || 1;
 
+  /**
+   * Cờ "Kích hoạt" (FR-047) quyết định mẫu có được dùng hay không — mẫu chưa kích
+   * hoạt không được chào ra cho doanh nghiệp lập hồ sơ.
+   */
+  const activeTemplates = (templates || []).filter((t) => t.isActive);
+
   const orgSubmissions = (submissions || []).filter((s) => s.organizationId === orgId);
   const orgObligations = (obligations || []).filter((o) => o.organizationId === orgId);
 
@@ -148,7 +154,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
         </div>
 
         <button
-          onClick={() => handleStartFiling(templates[0])}
+          onClick={() => handleStartFiling(activeTemplates[0])}
           className="inline-flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs self-start sm:self-auto cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -237,7 +243,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
 
                         <button
                           onClick={() => {
-                            const tpl = templates.find((t) => t.id === obl.templateId) || templates[0];
+                            const tpl = activeTemplates.find((t) => t.id === obl.templateId) || activeTemplates[0];
                             handleStartFiling(tpl);
                           }}
                           className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer self-start sm:self-auto shrink-0"
@@ -300,7 +306,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
                           {obl.status !== 'FULFILLED' ? (
                             <button
                               onClick={() => {
-                                const tpl = templates.find((t) => t.id === obl.templateId) || templates[0];
+                                const tpl = activeTemplates.find((t) => t.id === obl.templateId) || activeTemplates[0];
                                 handleStartFiling(tpl);
                               }}
                               className={`inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs cursor-pointer ${
@@ -337,7 +343,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
             </h3>
 
             <div className="flex items-center space-x-2">
-              {templates.map((tpl) => (
+              {activeTemplates.map((tpl) => (
                 <button
                   key={tpl.id}
                   onClick={() => handleStartFiling(tpl)}

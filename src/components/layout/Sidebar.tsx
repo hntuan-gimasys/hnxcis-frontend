@@ -310,6 +310,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveModule('admin_templates')}
+              className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
+                activeModule === 'admin_templates'
+                  ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
+                  : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Cấu hình Mẫu báo cáo (FR-047)</span>
+            </button>
+
+            <button
               onClick={() => setActiveModule('admin_users')}
               className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
                 activeModule === 'admin_users'

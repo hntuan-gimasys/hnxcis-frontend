@@ -287,9 +287,27 @@ export interface TemplateDefinition extends BaseEntity {
   newsTypeCode?: string;
   newsGroupCode?: NewsGroupCode;
   ownerUnitCode?: string;
-  autoApprove: boolean;
+  /**
+   * SÁU cờ theo bảng "Thông tin quản lý" của URD (PRD v1.2 §5.2.4, §7.5 FR-047,
+   * §13.2 S8) — không phải ba. PRD v1.0 gộp hai cấp tự động duyệt thành một cờ
+   * `autoApprove` là sai: URD tách riêng cấp lãnh đạo và cấp chuyên viên.
+   *
+   * URD chưa định nghĩa hành vi/hệ quả của `requireCaSign` và `postAudit` ngoài
+   * một dòng mô tả — còn chờ nghiệp vụ chốt (§12.6 câu 17). Ở prototype này các
+   * cờ mới chỉ là dữ liệu cấu hình, chưa nối vào workflow.
+   */
+  /** "Lãnh đạo tự động duyệt" — tự động duyệt tin ở bước lãnh đạo. */
+  autoApproveManager: boolean;
+  /** "Chuyên viên tự động duyệt" — tự động duyệt tin ở bước chuyên viên. */
+  autoApproveStaff: boolean;
+  /** "Ký CA" — mẫu tin có yêu cầu kiểm tra chữ ký số. */
   requireCaSign: boolean;
+  /** "Hậu kiểm tin" — mẫu tin thuộc diện hậu kiểm. */
   postAudit: boolean;
+  /** "Công bố" — mẫu có được phép công bố ra ngoài hệ thống. */
+  allowPublish: boolean;
+  /** "Đơn vị kiểm soát" — bắt buộc theo URD. */
+  controlUnitCode?: string;
   workflowDefCode: string;
   titleFormula?: string;
   deadlineRuleJson?: {
@@ -297,6 +315,7 @@ export interface TemplateDefinition extends BaseEntity {
     offsetWorkingDays?: number;
     offsetHours?: number;
   };
+  /** "Kích hoạt" — trạng thái sử dụng của mẫu báo cáo. */
   isActive: boolean;
   inUse: boolean;
   autoTranslate: boolean;

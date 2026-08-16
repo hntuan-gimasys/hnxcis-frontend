@@ -14,6 +14,7 @@ import {
   INITIAL_SURVEILLANCE_RECORDS,
   INITIAL_OBLIGATIONS,
   INITIAL_USERS,
+  INITIAL_TEMPLATES,
   INITIAL_AUDIT_LOGS,
   INITIAL_NOTIFICATIONS,
 } from './data/mockData';
@@ -25,6 +26,7 @@ import {
   NotificationItem,
   Alert,
   SurveillanceRecord,
+  TemplateDefinition,
   FeeRecord,
 } from './types/hnx';
 import { notificationService } from './services/notificationService';
@@ -59,6 +61,7 @@ export default function App() {
   const [alerts] = useState<Alert[]>(INITIAL_ALERTS);
   const [surveillanceRecords] = useState<SurveillanceRecord[]>(INITIAL_SURVEILLANCE_RECORDS);
   const [obligations] = useState(INITIAL_OBLIGATIONS);
+  const [templates, setTemplates] = useState<TemplateDefinition[]>(INITIAL_TEMPLATES);
   const [tasks] = useState([]);
   const [fees] = useState<FeeRecord[]>([
     {
@@ -285,6 +288,7 @@ export default function App() {
               organizations={organizations}
               obligations={obligations}
               submissions={submissions}
+              templates={templates}
               alerts={alerts}
               onSubmitNewFiling={(newSub) => {
                 setSubmissions((prev) => [newSub, ...prev]);
@@ -353,6 +357,10 @@ export default function App() {
                   activeModule={activeModule}
                   users={users}
                   currentUser={currentUser}
+                  templates={templates}
+                  onUpdateTemplate={(updated) =>
+                    setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+                  }
                 />
               )}
             </>
