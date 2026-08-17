@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
    * module nào — lãnh đạo P.TTTT không thể vào hàng đợi duyệt tin bằng điện thoại.
    */
   const asideClass = [
-    'w-64 bg-slate-900 text-slate-300 border-r border-slate-800 shrink-0',
+    'w-64 bg-hnx-sidebar text-emerald-100 border-r border-emerald-900/60 shrink-0',
     'fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200',
     mobileOpen ? 'translate-x-0' : '-translate-x-full',
     'md:static md:translate-x-0 md:z-auto md:overflow-visible',

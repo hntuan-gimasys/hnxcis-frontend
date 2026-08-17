@@ -313,7 +313,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-md">
+            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold rounded-md">
               Mã chứng khoán: VNM
             </span>
             <span className="text-xs text-slate-500">MST: {organization?.taxCode || '0300588569'}</span>
@@ -328,7 +328,7 @@ export const CorporatePortal: React.FC<CorporatePortalProps> = ({
 
         <button
           onClick={() => handleStartFiling(activeTemplates[0])}
-          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 bg-hnx-gradient text-white text-xs font-bold rounded-xl shadow-md hover:opacity-95 self-start sm:self-auto cursor-pointer border border-emerald-600/40 transition-all"
         >
           <Plus className="h-4 w-4" />
           <span>Lập Báo cáo / Khai báo Mới</span>

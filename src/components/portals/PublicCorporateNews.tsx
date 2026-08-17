@@ -76,20 +76,20 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
 
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 pb-16">
-      {/* Hero Search Section */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white py-6 sm:py-10 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+      {/* Hero Search Section with HNX Figma Design System Gradient */}
+      <div className="bg-hnx-gradient text-white py-6 sm:py-10 px-4 sm:px-6 lg:px-8 border-b border-emerald-900 shadow-md">
         <div className="max-w-6xl mx-auto space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-600/30 text-blue-300 border border-blue-500/40 text-xs font-semibold">
+              <span className="px-3 py-1 rounded-full bg-[#123A0A]/70 text-emerald-100 border border-[#6FAE55]/50 text-xs font-bold uppercase tracking-wider backdrop-blur-xs">
                 SỞ GIAO DỊCH CHỨNG KHOÁN HÀ NỘI (HNX)
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight text-white drop-shadow-xs">
                 {lang === 'vi'
                   ? 'Chuyên trang Công bố Thông tin Doanh nghiệp (Corporate News)'
                   : 'HNX Corporate Information Disclosure Portal'}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
+              <p className="text-xs sm:text-sm text-emerald-100/90 mt-1 max-w-2xl font-medium">
                 {lang === 'vi'
                   ? 'Kênh chính thức tra cứu Báo cáo tài chính, Tin công bố bất thường và Hồ sơ niêm yết của Doanh nghiệp trên sàn HNX, UPCoM & Trái phiếu.'
                   : 'Official portal for searching Financial Statements, Extraordinary Disclosures, and Listing Profiles on HNX & UPCoM.'}
@@ -100,7 +100,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
               href="https://www.hnx.vn"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 rounded-lg border border-slate-700 font-medium self-start sm:self-auto"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-[#123A0A]/80 hover:bg-[#123A0A] text-xs text-white rounded-lg border border-[#6FAE55]/40 font-medium self-start sm:self-auto shadow-xs transition-colors"
             >
               <span>{lang === 'vi' ? 'Website Chính thức HNX' : 'HNX Main Website'}</span>
               <ExternalLink className="h-3.5 w-3.5" />
@@ -120,7 +120,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                     ? 'Nhập Mã chứng khoán (VNM, HPG, VIC...), Tên Doanh nghiệp hoặc Từ khóa...'
                     : 'Search by Symbol, Company Name or Keywords...'
                 }
-                className="w-full pl-12 pr-4 py-3 bg-white text-slate-900 rounded-xl text-sm font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-12 pr-4 py-3 bg-white text-slate-900 rounded-xl text-sm font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-[#6FAE55]"
               />
             </div>
           </div>
@@ -315,7 +315,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                 </div>
 
                 {/* Green Bonds Spotlight Card (FR-021 / Treasury & Investor view) */}
-                <div className="bg-gradient-to-br from-emerald-900 to-slate-900 text-white rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="bg-hnx-gradient-card border border-emerald-500/30 text-white rounded-2xl p-5 shadow-sm space-y-3">
                   <div className="flex items-center space-x-2 text-emerald-400">
                     <Award className="h-5 w-5" />
                     <span className="font-bold text-sm">Chuyên trang Trái phiếu Xanh (FR-021)</span>

@@ -1,1 +1,55 @@
 @import "tailwindcss";
+
+@theme {
+  --color-hnx-light: #6fae55;
+  --color-hnx-mid: #4f8f3a;
+  --color-hnx-deep: #2f6b1d;
+  --color-hnx-dark: #123a0a;
+
+  --color-hnx-50: #f3f9f1;
+  --color-hnx-100: #e2f2dd;
+  --color-hnx-200: #c4e4ba;
+  --color-hnx-300: #9ecc91;
+  --color-hnx-400: #6fae55;
+  --color-hnx-500: #4f8f3a;
+  --color-hnx-600: #2f6b1d;
+  --color-hnx-700: #225115;
+  --color-hnx-800: #1a3e0f;
+  --color-hnx-900: #123a0a;
+  --color-hnx-950: #091e04;
+
+  --color-indigo-50: #f3f9f1;
+  --color-indigo-100: #e2f2dd;
+  --color-indigo-200: #c4e4ba;
+  --color-indigo-300: #9ecc91;
+  --color-indigo-400: #6fae55;
+  --color-indigo-500: #4f8f3a;
+  --color-indigo-600: #2f6b1d;
+  --color-indigo-700: #225115;
+  --color-indigo-800: #1a3e0f;
+  --color-indigo-900: #123a0a;
+  --color-indigo-950: #091e04;
+}
+
+@layer utilities {
+  .bg-hnx-gradient {
+    background-image: linear-gradient(180deg, #6fae55 0%, #4f8f3a 35%, #2f6b1d 70%, #123a0a 100%);
+  }
+
+  .bg-hnx-gradient-horizontal {
+    background-image: linear-gradient(90deg, #123a0a 0%, #2f6b1d 40%, #4f8f3a 85%, #6fae55 100%);
+  }
+
+  .bg-hnx-gradient-card {
+    background-image: linear-gradient(135deg, #6fae55 0%, #4f8f3a 40%, #2f6b1d 100%);
+  }
+
+  .bg-hnx-header {
+    background-color: #0d2107;
+  }
+
+  .bg-hnx-sidebar {
+    background-color: #0a1b05;
+  }
+}
+

@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   const unreadCount = (notifications || []).filter((n) => !n.readAt).length;
 
   return (
-    <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
+    <header className="bg-hnx-header text-white border-b border-emerald-900/60 sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Geometric Balance Logo & Title */}
@@ -56,36 +56,36 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onOpenMenu}
                 aria-label="Mở menu chức năng"
-                className="md:hidden p-2 -ml-2 rounded-sm text-slate-300 hover:text-white hover:bg-slate-800"
+                className="md:hidden p-2 -ml-2 rounded-sm text-emerald-300 hover:text-white hover:bg-emerald-900/60"
               >
                 <Menu className="h-5 w-5" />
               </button>
             )}
-            <div className="w-9 h-9 bg-indigo-600 rounded-sm flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-9 h-9 bg-hnx-gradient rounded-sm flex items-center justify-center shrink-0 shadow-md border border-emerald-500/30">
               <div className="w-4 h-4 border-2 border-white rotate-45"></div>
             </div>
             <div>
               {/* Tên & viết tắt chính thức theo URD (PRD v1.2 §0, §13.2 S16) */}
               <div className="font-bold text-sm sm:text-base tracking-tight text-white flex items-center space-x-2">
-                <span className="uppercase tracking-wider font-extrabold text-indigo-400">IMS/ICDS</span>
-                <span className="text-[10px] bg-indigo-950/90 text-indigo-300 px-2 py-0.5 rounded-sm font-mono border border-indigo-700/80 uppercase font-bold tracking-widest">
+                <span className="uppercase tracking-wider font-extrabold text-[#6FAE55]">IMS/ICDS</span>
+                <span className="text-[10px] bg-emerald-950/90 text-emerald-300 px-2 py-0.5 rounded-sm font-mono border border-emerald-700/80 uppercase font-bold tracking-widest">
                   v1.2 (2026)
                 </span>
               </div>
-              <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider hidden sm:block">
+              <div className="text-[10px] text-emerald-300/70 uppercase font-bold tracking-wider hidden sm:block">
                 Hệ thống tiếp nhận, quản lý khai thác và công bố thông tin doanh nghiệp
               </div>
             </div>
           </div>
 
           {/* Geometric Portal Switcher Tabs */}
-          <div className="hidden md:flex items-center space-x-1 bg-slate-800/90 p-1 rounded-md border border-slate-700">
+          <div className="hidden md:flex items-center space-x-1 bg-emerald-950/90 p-1 rounded-md border border-emerald-800/80">
             <button
               onClick={() => setActivePortal('internal')}
               className={`flex items-center space-x-2 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
                 activePortal === 'internal'
-                  ? 'bg-indigo-600 text-white shadow-sm border-l-2 border-white'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                  ? 'bg-hnx-gradient text-white shadow-sm border-l-2 border-emerald-200'
+                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/60'
               }`}
             >
               <Building className="h-3.5 w-3.5" />
@@ -96,8 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setActivePortal('corporate')}
               className={`flex items-center space-x-2 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
                 activePortal === 'corporate'
-                  ? 'bg-indigo-600 text-white shadow-sm border-l-2 border-white'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                  ? 'bg-hnx-gradient text-white shadow-sm border-l-2 border-emerald-200'
+                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/60'
               }`}
             >
               <Building2 className="h-3.5 w-3.5" />
@@ -108,8 +108,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setActivePortal('public')}
               className={`flex items-center space-x-2 px-3 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
                 activePortal === 'public'
-                  ? 'bg-emerald-600 text-white shadow-sm border-l-2 border-white'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+                  ? 'bg-hnx-gradient text-white shadow-sm border-l-2 border-emerald-200'
+                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/60'
               }`}
             >
               <Newspaper className="h-3.5 w-3.5" />
@@ -122,10 +122,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-              className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-sm bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 uppercase tracking-widest"
+              className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-sm bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-100 border border-emerald-800 uppercase tracking-widest"
               title="Chuyển đổi ngôn ngữ VI / EN"
             >
-              <Globe className="h-3.5 w-3.5 text-indigo-400" />
+              <Globe className="h-3.5 w-3.5 text-[#6FAE55]" />
               <span>{lang}</span>
             </button>
 
