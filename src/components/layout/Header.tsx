@@ -148,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
               {showNotifs && (
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-md shadow-2xl border border-slate-200 text-slate-900 z-50 overflow-hidden">
                   <div className="p-3 bg-slate-900 text-white font-bold text-xs flex justify-between items-center uppercase tracking-wider">
-                    <span>Thông báo & Cảnh báo System</span>
+                    <span>Thông báo & Cảnh báo (FR-030)</span>
                     <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-sm text-[10px]">
                       {unreadCount} mới
                     </span>

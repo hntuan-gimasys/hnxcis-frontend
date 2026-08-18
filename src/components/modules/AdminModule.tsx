@@ -423,7 +423,7 @@ export const AdminModule: React.FC<AdminModuleProps> = ({
         <div className="bg-white border border-slate-200 rounded-sm p-6 shadow-xs space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Danh sách Tài khoản & Phân quyền dựa trên Thuộc tính (ABAC Authorization)
+              Danh sách Tài khoản & Phân quyền dựa trên Thuộc tính (FR-056, ABAC Authorization)
             </h3>
             {!isReadOnly && (
               <button

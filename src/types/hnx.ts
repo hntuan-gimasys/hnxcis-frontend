@@ -895,3 +895,101 @@ export interface LoginAuditEntry {
   userAgent: string;
   failReason?: string;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Giám sát & xử lý trạng thái (FR-005, FR-007, FR-009, FR-012 → FR-015)
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** FR-007 · Vi phạm giao dịch của người nội bộ và người có liên quan. */
+export interface TradingViolation extends BaseEntity {
+  violationNo: string;
+  organizationId: number;
+  symbol: string;
+  violatorName: string;
+  violatorRole: 'INTERNAL' | 'RELATED' | 'MAJOR_SHAREHOLDER';
+  violationType: 'NO_PRIOR_NOTICE' | 'TRADE_IN_BLACKOUT' | 'EXCEED_REGISTERED' | 'NO_RESULT_REPORT';
+  occurredDate: string;
+  detectedDate: string;
+  quantity: number;
+  description: string;
+  status: 'DETECTED' | 'NOTIFIED' | 'EXPLAINED' | 'SANCTIONED' | 'CLOSED';
+  sanctionRef?: string;
+}
+
+/**
+ * FR-009 / FR-012 / FR-013 · Hồ sơ xử lý trạng thái niêm yết.
+ *
+ * Ba FR gộp vào một interface vì luồng giống hệt nhau — chỉ khác `caseType` và
+ * căn cứ pháp lý. Tách ba interface y hệt nhau sẽ nhân ba mọi thay đổi sau này.
+ */
+export interface ListingStatusCase extends BaseEntity {
+  caseNo: string;
+  caseType: 'RELIST' | 'BOND_DELIST' | 'UPCOM_DELIST' | 'PUBLIC_COMPANY_APPRAISAL';
+  organizationId: number;
+  symbol: string;
+  reasonCode: string;
+  reasonText: string;
+  legalBasis: string;
+  ruleCode?: string;
+  receivedDate: string;
+  appraisalDueDate: string;
+  decisionRef?: string;
+  decisionDate?: string;
+  effectiveDate?: string;
+  status: 'RECEIVED' | 'APPRAISING' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  assigneeName?: string;
+}
+
+/** FR-014 / FR-015 · Danh sách chứng khoán không được ký quỹ. */
+export interface MarginIneligibleEntry extends BaseEntity {
+  symbol: string;
+  organizationId: number;
+  reasonCode: string;
+  reasonText: string;
+  legalBasis: string;
+  entryDate: string;
+  entryDecisionRef: string;
+  /** Có giá trị nghĩa là đã ra khỏi danh sách — đó chính là FR-015. */
+  exitDate?: string;
+  exitDecisionRef?: string;
+  exitReason?: string;
+  status: 'IN_LIST' | 'REMOVED';
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Khảo sát (FR-028, FR-029)
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export interface SurveyDefinition extends BaseEntity {
+  surveyCode: string;
+  title: string;
+  description: string;
+  targetAudience: 'LISTED' | 'UPCOM_REGISTERED' | 'BOND_ISSUER' | 'ALL';
+  openDate: string;
+  closeDate: string;
+  status: 'DRAFT' | 'OPEN' | 'CLOSED';
+  questions: SurveyQuestion[];
+  sentCount: number;
+  responseCount: number;
+}
+
+export interface SurveyQuestion {
+  id: number;
+  surveyId: number;
+  questionText: string;
+  questionType: 'SINGLE_CHOICE' | 'MULTI_CHOICE' | 'RATING' | 'FREE_TEXT';
+  options?: string[];
+  sortOrder: number;
+  isRequired: boolean;
+}
+
+/** FR-029 · Kết quả tổng hợp theo từng câu hỏi. */
+export interface SurveyResultSummary {
+  questionId: number;
+  questionText: string;
+  questionType: SurveyQuestion['questionType'];
+  /** Phân bố lựa chọn; với FREE_TEXT thì rỗng và dùng `sampleAnswers`. */
+  distribution: Array<{ label: string; count: number }>;
+  averageRating?: number;
+  sampleAnswers?: string[];
+}

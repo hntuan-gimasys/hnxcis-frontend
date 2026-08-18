@@ -22,10 +22,47 @@ import {
   AlertCircle,
   XCircle,
   FileText,
+  Languages,
 } from 'lucide-react';
 
 export const AiCenterModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'ocr' | 'risk' | 'draft' | 'autocorrect' | 'chat'>('ocr');
+  const [activeTab, setActiveTab] = useState<'ocr' | 'risk' | 'draft' | 'autocorrect' | 'chat' | 'translate'>('ocr');
+
+  /**
+   * FR-065 — hỗ trợ dịch Việt → Anh.
+   *
+   * Đây là tính năng AI DUY NHẤT đã có sẵn cả endpoint backend
+   * (POST /api/gemini/translate) lẫn hàm bọc (`aiService.translate`) nhưng không
+   * có nơi nào trên giao diện gọi tới. Tab này nối phần đã có đó lại.
+   *
+   * Khác bốn tab còn lại: chúng mô phỏng kết quả bằng setTimeout với dữ liệu
+   * viết tay, còn tab này gọi backend thật qua `aiService`. Khi backend chưa
+   * chạy, lỗi được hiển thị nguyên văn thay vì im lặng trả về kết quả giả — để
+   * không ai nhầm dữ liệu mô phỏng với dữ liệu thật.
+   */
+  const [trSource, setTrSource] = useState('');
+  const [trResult, setTrResult] = useState<string | null>(null);
+  const [trLoading, setTrLoading] = useState(false);
+  const [trError, setTrError] = useState<string | null>(null);
+
+  const runTranslate = async () => {
+    if (!trSource.trim()) return;
+    setTrLoading(true);
+    setTrError(null);
+    setTrResult(null);
+    try {
+      const { aiService } = await import('../../services/aiService');
+      const out = await aiService.translate(trSource);
+      setTrResult(out.translatedTextEn);
+    } catch (err) {
+      setTrError(
+        `Không gọi được dịch vụ dịch: ${err instanceof Error ? err.message : String(err)}. ` +
+          'Kiểm tra backend đã chạy và biến API_BASE_URL đã trỏ đúng chưa.',
+      );
+    } finally {
+      setTrLoading(false);
+    }
+  };
 
   // OCR state
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -404,7 +441,7 @@ Do sự cố hệ thống CNTT ngày 2026-08-05, Công ty xin giải trình vi�
           }`}
         >
           <FileSearch className="h-4 w-4" />
-          <span>1. Bóc tách BCTC (OCR)</span>
+          <span>1. Bóc tách BCTC — OCR (FR-064)</span>
         </button>
 
         <button
@@ -452,9 +489,91 @@ Do sự cố hệ thống CNTT ngày 2026-08-05, Công ty xin giải trình vi�
           }`}
         >
           <Bot className="h-4 w-4 text-purple-600" />
-          <span>5. Bot Hỏi đáp Pháp lý</span>
+          <span>5. Bot Hỏi đáp Pháp lý (FR-063)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('translate')}
+          className={`flex items-center space-x-2 px-3 py-2 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${
+            activeTab === 'translate'
+              ? 'bg-indigo-600 text-white shadow-xs border-l-2 border-white'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Languages className="h-4 w-4 text-emerald-600" />
+          <span>6. Hỗ trợ dịch Việt → Anh</span>
         </button>
       </div>
+
+      {/* FR-065 — Translate Tab */}
+      {activeTab === 'translate' && (
+        <div className="bg-white border border-slate-200 rounded-sm p-6 shadow-xs space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Languages className="h-4 w-4 text-emerald-600" />
+              Hỗ trợ dịch Việt → Anh
+              <span className="font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded-sm">
+                FR-065
+              </span>
+            </h3>
+            <p className="text-[11px] text-slate-600 mt-1">
+              Dịch nội dung công bố thông tin sang tiếng Anh phục vụ nhà đầu tư nước ngoài. Bản dịch là
+              <strong> bản nháp</strong> — phải qua người soát trước khi công bố, và được lưu thành một bản
+              ghi riêng chứ không ghi đè bản tiếng Việt.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                Nội dung tiếng Việt
+              </label>
+              <textarea
+                rows={10}
+                value={trSource}
+                onChange={(e) => setTrSource(e.target.value)}
+                placeholder="Dán nội dung công bố thông tin cần dịch..."
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-sm font-sans leading-relaxed"
+              />
+              <button
+                onClick={runTranslate}
+                disabled={trLoading || !trSource.trim()}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold uppercase tracking-wider"
+              >
+                <Languages className="h-4 w-4" />
+                {trLoading ? 'Đang dịch...' : 'Dịch sang tiếng Anh'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                Bản dịch tiếng Anh (nháp)
+              </label>
+              <div className="w-full min-h-[228px] px-3 py-2 text-xs border border-slate-300 rounded-sm bg-slate-50 leading-relaxed whitespace-pre-wrap">
+                {trError ? (
+                  <span className="text-rose-700">{trError}</span>
+                ) : trResult ? (
+                  trResult
+                ) : (
+                  <span className="text-slate-400">Kết quả dịch sẽ hiện ở đây.</span>
+                )}
+              </div>
+              {trResult && (
+                <div className="flex items-center gap-2 text-[10px] text-amber-800 bg-amber-50 border border-amber-300 rounded-sm p-2">
+                  Bản dịch máy — trạng thái <span className="font-mono font-bold">AI_DRAFT</span>. Cần người soát
+                  và chuyển sang <span className="font-mono font-bold">HUMAN_REVIEWED</span> trước khi công bố.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-500 border-t border-slate-100 pt-3">
+            Tab này gọi backend thật qua <span className="font-mono">aiService.translate</span> →{' '}
+            <span className="font-mono">POST /api/gemini/translate</span>. Năm tab còn lại hiện vẫn mô phỏng
+            kết quả trong trình duyệt, chưa nối backend.
+          </div>
+        </div>
+      )}
 
       {/* OCR Tab */}
       {activeTab === 'ocr' && (

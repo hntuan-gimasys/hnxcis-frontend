@@ -409,7 +409,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({
           >
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <Clock className={`h-3.5 w-3.5 ${nearSlaBreach.length > 0 ? 'text-rose-600' : 'text-slate-400'}`} />
-              <span>Sắp quá hạn SLA nội bộ</span>
+              <span>Sắp quá hạn SLA nội bộ (FR-031)</span>
             </div>
             {canViewDetail && nearSlaBreach.length > 0 ? (
               <button

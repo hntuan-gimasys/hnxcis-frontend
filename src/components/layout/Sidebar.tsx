@@ -33,7 +33,27 @@ import {
   Filter,
   Lock,
   Building2,
+  Scale,
+  Gavel,
+  ShieldOff,
+  Users2,
+  PieChart,
+  Landmark,
+  Scissors,
+  SlidersHorizontal,
+  Newspaper,
+  FileCheck2,
+  EyeOff,
+  BarChart3,
+  ClipboardList,
 } from 'lucide-react';
+
+/** Nhóm menu khai báo bằng dữ liệu; `Icon` là component nên viết hoa đầu. */
+interface NavItem {
+  readonly code: string;
+  readonly label: string;
+  readonly Icon: React.ComponentType<{ className?: string }>;
+}
 import { UserRoleCode } from '../../types/hnx';
 
 /**
@@ -52,6 +72,41 @@ const METADATA_NAV = [
   { code: 'meta_fs_templates', label: 'Mẫu báo cáo tài chính (FR-049)', Icon: Calculator },
   { code: 'meta_datastruct', label: 'Cấu trúc dữ liệu (FR-050,051)', Icon: Boxes },
   { code: 'meta_workflows', label: 'Khai báo Workflow (FR-054)', Icon: GitBranch },
+] as const;
+
+/** Giám sát & xử lý trạng thái niêm yết — P.QLNY. */
+const SURVEILLANCE_NAV = [
+  { code: 'surv_status_cases', label: 'Thẩm định & Xử lý trạng thái (FR-004,005,009,012,013)', Icon: Scale },
+  { code: 'surv_violations', label: 'Vi phạm giao dịch (FR-007)', Icon: Gavel },
+  { code: 'surv_margin', label: 'Danh sách KKQ (FR-014,015)', Icon: ShieldOff },
+] as const;
+
+/** Nhà đầu tư & sở hữu chứng khoán — dùng chung Niêm yết và Trái phiếu. */
+const OWNERSHIP_NAV = [
+  { code: 'own_investors', label: 'Nhà đầu tư & NCLQ (FR-026)', Icon: Users2 },
+  { code: 'own_holdings', label: 'Sở hữu chứng khoán (FR-003)', Icon: PieChart },
+] as const;
+
+/** Trái phiếu — phần bổ sung ngoài FR-020/021 đã có ở BondModule. */
+const BOND_EXTRA_NAV = [
+  { code: 'bond_listed', label: 'Trái phiếu niêm yết (FR-002)', Icon: Landmark },
+  { code: 'bond_cancel', label: 'Hủy ĐKGD trái phiếu (FR-022)', Icon: Scissors },
+  { code: 'bond_adjust', label: 'Điều chỉnh số lượng ĐKGD (FR-024)', Icon: SlidersHorizontal },
+] as const;
+
+/** Công bố thông tin — phần bổ sung ngoài FR-039/041/042 đã có ở DisclosureModule. */
+const CBTT_NAV = [
+  { code: 'cbtt_types', label: 'Các loại CBTT (FR-033→038)', Icon: Newspaper },
+  { code: 'cbtt_report_approval', label: 'Phê duyệt báo cáo (FR-040)', Icon: FileCheck2 },
+  { code: 'cbtt_control', label: 'Kiểm soát Corp News (FR-016)', Icon: EyeOff },
+] as const;
+
+/** Báo cáo khai thác và khảo sát. */
+const REPORT_NAV = [
+  { code: 'report_qlny', label: 'Báo cáo P.Niêm yết (FR-019)', Icon: BarChart3 },
+  { code: 'report_tttp', label: 'Báo cáo P.Trái phiếu (FR-025)', Icon: BarChart3 },
+  { code: 'survey_defs', label: 'Khai báo khảo sát (FR-028)', Icon: ClipboardList },
+  { code: 'survey_results', label: 'Kết quả khảo sát (FR-029)', Icon: PieChart },
 ] as const;
 
 /** Khối tài khoản – phân quyền – bảo mật. Tiền tố `access_` do App.tsx định tuyến. */
@@ -176,6 +231,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </>
     );
   }
+
+  /**
+   * Nhóm menu khai báo bằng dữ liệu. Mười ba mục mới đều chỉ khác nhau ở mã,
+   * nhãn và icon — dựng bằng JSX lặp tay sẽ tạo mười ba chỗ để lệch class khi
+   * sửa giao diện, và đã có sẵn một lần lệch như vậy trong file này trước đây.
+   */
+  const NavGroup: React.FC<{ title: string; items: readonly NavItem[] }> = ({ title, items }) => (
+    <div className="space-y-1">
+      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">{title}</div>
+      {items.map(({ code, label, Icon }) => (
+        <button
+          key={code}
+          onClick={() => pickModule(code)}
+          className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
+            activeModule === code
+              ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
+              : 'hover:bg-slate-800 text-slate-300'
+          }`}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          <span className="text-left leading-tight">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   // Internal HNX Portal
   const isSysAdmin = userRole === 'ROLE_SYS_ADMIN' || userRole === 'ROLE_BIZ_ADMIN';
@@ -398,6 +478,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         )}
+
+        {isQLNY && <NavGroup title="Giám sát & Xử lý trạng thái" items={SURVEILLANCE_NAV} />}
+
+        {(isQLNY || isTTTP) && <NavGroup title="Nhà đầu tư & Sở hữu" items={OWNERSHIP_NAV} />}
+
+        {isTTTP && <NavGroup title="Trái phiếu (bổ sung)" items={BOND_EXTRA_NAV} />}
+
+        {isTTTT && <NavGroup title="Công bố thông tin (bổ sung)" items={CBTT_NAV} />}
+
+        {(isQLNY || isTTTP || isTTTT) && <NavGroup title="Báo cáo & Khảo sát" items={REPORT_NAV} />}
 
         {/* Admin */}
         {canSeeAdmin && (

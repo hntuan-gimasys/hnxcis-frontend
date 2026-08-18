@@ -46,8 +46,15 @@ import { DisclosureModule } from './components/modules/DisclosureModule';
 import { AdminModule } from './components/modules/AdminModule';
 import { MetadataModule } from './components/modules/MetadataModule';
 import { AccessModule } from './components/modules/AccessModule';
+import { SurveillanceModule } from './components/modules/SurveillanceModule';
+import { OwnershipModule } from './components/modules/OwnershipModule';
+import { BondExtraModule } from './components/modules/BondExtraModule';
+import { DisclosureExtraModule } from './components/modules/DisclosureExtraModule';
+import { ReportModule } from './components/modules/ReportModule';
+import { SurveyModule } from './components/modules/SurveyModule';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { INITIAL_SECURITY_POLICY } from './data/accessMock';
+import { EXTRA_TEMPLATES } from './data/businessMock';
 
 export default function App() {
   // Global State
@@ -80,7 +87,15 @@ export default function App() {
   const [surveillanceRecords] = useState<SurveillanceRecord[]>(INITIAL_SURVEILLANCE_RECORDS);
   const [dossiers, setDossiers] = useState<RegistrationDossier[]>(INITIAL_DOSSIERS);
   const [obligations] = useState(INITIAL_OBLIGATIONS);
-  const [templates, setTemplates] = useState<TemplateDefinition[]>(INITIAL_TEMPLATES);
+  /**
+   * EXTRA_TEMPLATES bổ sung mẫu cho bốn nhóm tin trước đây không có mẫu nào
+   * (BOND, TRADING, ON_DEMAND, OFFERING). Thiếu chúng thì FR-035/036/037 tuy có
+   * nhóm tin trong enum nhưng doanh nghiệp mở màn nộp hồ sơ ra không chọn được gì.
+   */
+  const [templates, setTemplates] = useState<TemplateDefinition[]>([
+    ...INITIAL_TEMPLATES,
+    ...EXTRA_TEMPLATES,
+  ]);
   const [tasks] = useState([]);
   const [fees] = useState<FeeRecord[]>([
     {
@@ -616,6 +631,60 @@ export default function App() {
                   userRole={currentUser.roleCode}
                   organizations={organizations}
                 />
+              )}
+
+              {activeModule.startsWith('surv_') && (
+                <SurveillanceModule
+                  activeModule={activeModule}
+                  organizations={organizations}
+                  userRole={currentUser.roleCode}
+                />
+              )}
+
+              {activeModule.startsWith('own_') && (
+                <OwnershipModule
+                  activeModule={activeModule}
+                  securities={securities}
+                  organizations={organizations}
+                  userRole={currentUser.roleCode}
+                />
+              )}
+
+              {activeModule.startsWith('bond_') && (
+                <BondExtraModule
+                  activeModule={activeModule}
+                  bondProfiles={bondProfiles}
+                  securities={securities}
+                  organizations={organizations}
+                  userRole={currentUser.roleCode}
+                />
+              )}
+
+              {activeModule.startsWith('cbtt_') && (
+                <DisclosureExtraModule
+                  activeModule={activeModule}
+                  submissions={submissions}
+                  templates={templates}
+                  organizations={organizations}
+                  userRole={currentUser.roleCode}
+                  onHideSubmission={(id, reason) => handleHideSubmission(id, reason)}
+                />
+              )}
+
+              {(activeModule.startsWith('report_') || activeModule.startsWith('survey_')) && (
+                activeModule.startsWith('report_') ? (
+                  <ReportModule
+                    activeModule={activeModule}
+                    organizations={organizations}
+                    securities={securities}
+                    submissions={submissions}
+                    bondProfiles={bondProfiles}
+                    obligations={obligations}
+                    userRole={currentUser.roleCode}
+                  />
+                ) : (
+                  <SurveyModule activeModule={activeModule} userRole={currentUser.roleCode} />
+                )
               )}
             </>
           )}

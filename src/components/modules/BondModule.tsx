@@ -116,7 +116,7 @@ export const BondModule: React.FC<BondModuleProps> = ({
           }`}
         >
           <Layers className="h-4 w-4" />
-          <span>Trái phiếu Riêng lẻ (FR-020)</span>
+          <span>Trái phiếu Riêng lẻ & ĐKGD (FR-020, FR-023)</span>
         </button>
 
         <button
