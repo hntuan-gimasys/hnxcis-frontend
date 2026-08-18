@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, NotificationItem } from '../../types/hnx';
 import { getRoleLabel } from '../../data/roleCatalog';
+import hnxLogo from '../../assets/hnx-logo.png';
 
 interface HeaderProps {
   activePortal: 'internal' | 'corporate' | 'public';
@@ -61,21 +62,22 @@ export const Header: React.FC<HeaderProps> = ({
                 <Menu className="h-5 w-5" />
               </button>
             )}
-            <div className="w-9 h-9 bg-hnx-gradient rounded-sm flex items-center justify-center shrink-0 shadow-md border border-emerald-500/30">
-              <div className="w-4 h-4 border-2 border-white rotate-45"></div>
-            </div>
-            <div>
-              {/* Tên & viết tắt chính thức theo URD (PRD v1.2 §0, §13.2 S16) */}
-              <div className="font-bold text-sm sm:text-base tracking-tight text-white flex items-center space-x-2">
-                <span className="uppercase tracking-wider font-extrabold text-[#6FAE55]">IMS/ICDS</span>
-                <span className="text-[10px] bg-emerald-950/90 text-emerald-300 px-2 py-0.5 rounded-sm font-mono border border-emerald-700/80 uppercase font-bold tracking-widest">
-                  v1.2 (2026)
-                </span>
-              </div>
-              <div className="text-[10px] text-emerald-300/70 uppercase font-bold tracking-wider hidden sm:block">
-                Hệ thống tiếp nhận, quản lý khai thác và công bố thông tin doanh nghiệp
-              </div>
-            </div>
+            {/*
+              Logo chính thức HNX. Ảnh là chữ trắng trên nền trong suốt nên chỉ đọc
+              được trên nền tối — header dùng `bg-hnx-header` (#0d2107), đừng đặt
+              logo này lên nền sáng mà không đổi sang bản màu.
+
+              Bản thân logo đã mang tên hệ thống song ngữ, nên khối chữ
+              "IMS/ICDS + mô tả" trước đây bị bỏ đi để tránh lặp.
+            */}
+            <img
+              src={hnxLogo}
+              alt="Sở Giao dịch Chứng khoán Hà Nội — Hanoi Stock Exchange"
+              /* Logo tỉ lệ 5:1, nên chiều cao quyết định chiều rộng: 24px→121px,
+                 32px→162px, 36px→182px. Trên mobile còn nút menu bên trái và 3 nút
+                 bên phải, nên phải hạ xuống 24px mới đủ chỗ trên máy 375px. */
+              className="h-6 sm:h-8 md:h-9 w-auto shrink-0"
+            />
           </div>
 
           {/* Geometric Portal Switcher Tabs */}
