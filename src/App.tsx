@@ -45,6 +45,9 @@ import { BondModule } from './components/modules/BondModule';
 import { DisclosureModule } from './components/modules/DisclosureModule';
 import { AdminModule } from './components/modules/AdminModule';
 import { MetadataModule } from './components/modules/MetadataModule';
+import { AccessModule } from './components/modules/AccessModule';
+import { LoginScreen } from './components/layout/LoginScreen';
+import { INITIAL_SECURITY_POLICY } from './data/accessMock';
 
 export default function App() {
   // Global State
@@ -56,6 +59,16 @@ export default function App() {
   // Personas
   const [users] = useState<UserAccount[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserAccount>(INITIAL_USERS[1]); // Cán bộ P.QLNY by default
+
+  /**
+   * FR-060 — cổng đăng nhập.
+   *
+   * Trước đây ứng dụng vào thẳng cổng nội bộ, không có bước xác thực nào, nên
+   * FR-055/059/060 không có gì để rà. `authenticated` giữ đúng một trạng thái:
+   * đã qua màn đăng nhập hay chưa. Dropdown đổi persona ở header vẫn giữ nguyên
+   * cho tiện thử nghiệm sau khi đã vào.
+   */
+  const [authenticated, setAuthenticated] = useState(false);
 
   // Entities Data
   const [organizations] = useState(INITIAL_ORGANIZATIONS);
@@ -423,6 +436,26 @@ export default function App() {
     setAuditModalOpen(true);
   };
 
+  /**
+   * Cổng công khai (Corporate News) cố ý KHÔNG yêu cầu đăng nhập — theo FR-066
+   * đó là website công khai cho nhà đầu tư. Chỉ hai cổng nội bộ và doanh nghiệp
+   * mới đi qua màn xác thực.
+   */
+  if (!authenticated && activePortal !== 'public') {
+    return (
+      <LoginScreen
+        users={users}
+        policy={INITIAL_SECURITY_POLICY}
+        onAuthenticated={(user) => {
+          setCurrentUser(user);
+          setAuthenticated(true);
+          setActivePortal(user.actorType === 'ORGANIZATION' ? 'corporate' : 'internal');
+          setActiveModule(user.actorType === 'ORGANIZATION' ? 'corp_dashboard' : 'dashboard');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
       {/* Header */}
@@ -574,6 +607,14 @@ export default function App() {
                   activeModule={activeModule}
                   userRole={currentUser.roleCode}
                   templates={templates}
+                />
+              )}
+
+              {activeModule.startsWith('access_') && (
+                <AccessModule
+                  activeModule={activeModule}
+                  userRole={currentUser.roleCode}
+                  organizations={organizations}
                 />
               )}
             </>

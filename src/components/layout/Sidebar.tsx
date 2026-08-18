@@ -28,6 +28,11 @@ import {
   Calculator,
   Boxes,
   GitBranch,
+  UserPlus,
+  ShieldCheck,
+  Filter,
+  Lock,
+  Building2,
 } from 'lucide-react';
 import { UserRoleCode } from '../../types/hnx';
 
@@ -47,6 +52,15 @@ const METADATA_NAV = [
   { code: 'meta_fs_templates', label: 'Mẫu báo cáo tài chính (FR-049)', Icon: Calculator },
   { code: 'meta_datastruct', label: 'Cấu trúc dữ liệu (FR-050,051)', Icon: Boxes },
   { code: 'meta_workflows', label: 'Khai báo Workflow (FR-054)', Icon: GitBranch },
+] as const;
+
+/** Khối tài khoản – phân quyền – bảo mật. Tiền tố `access_` do App.tsx định tuyến. */
+const ACCESS_NAV = [
+  { code: 'access_requests', label: 'Đăng ký tài khoản (FR-055)', Icon: UserPlus },
+  { code: 'access_permissions', label: 'Phân quyền chức năng (FR-057)', Icon: ShieldCheck },
+  { code: 'access_datascope', label: 'Phân quyền dữ liệu (FR-058,044)', Icon: Filter },
+  { code: 'access_security', label: 'Bảo mật & Đăng nhập (FR-059,060)', Icon: Lock },
+  { code: 'access_orgs', label: 'Hồ sơ tổ chức (FR-061)', Icon: Building2 },
 ] as const;
 
 interface SidebarProps {
@@ -443,6 +457,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {METADATA_NAV.map(({ code, label, Icon }) => (
+              <button
+                key={code}
+                onClick={() => pickModule(code)}
+                className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
+                  activeModule === code
+                    ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
+                    : 'hover:bg-slate-800 text-slate-300'
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="text-left leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {canSeeAdmin && (
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+              Tài khoản &amp; Bảo mật
+            </div>
+
+            {ACCESS_NAV.map(({ code, label, Icon }) => (
               <button
                 key={code}
                 onClick={() => pickModule(code)}

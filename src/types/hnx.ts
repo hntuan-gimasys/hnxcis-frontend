@@ -838,3 +838,60 @@ export interface RolePermission {
   allowedStatuses?: string[] | null;
   effect: 'ALLOW' | 'DENY';
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Tài khoản, phân quyền và bảo mật (FR-055 → FR-060)
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** FR-055 · Yêu cầu mở tài khoản do doanh nghiệp gửi lên, chờ HNX duyệt. */
+export interface AccountRequest extends BaseEntity {
+  requestNo: string;
+  organizationTaxCode: string;
+  organizationName: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  position: string;
+  requestedRole: UserRoleCode;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'RETURNED';
+  submittedAt: string;
+  processedAt?: string;
+  processedBy?: number;
+  rejectReason?: string;
+}
+
+/**
+ * FR-059 / FR-060 · Chính sách bảo mật.
+ *
+ * Gộp hai FR vào một cấu hình vì chúng chỉ khác nhau ở phạm vi áp dụng: FR-059
+ * ràng buộc bản thân tài khoản (mật khẩu, khóa, hết hạn), FR-060 ràng buộc hành
+ * vi đăng nhập (số lần sai, MFA, phiên, IP). Tách đôi ở tầng dữ liệu chỉ tạo hai
+ * bảng luôn phải sửa cùng nhau.
+ */
+export interface SecurityPolicy {
+  /* FR-059 — tài khoản */
+  passwordMinLength: number;
+  passwordRequireUppercase: boolean;
+  passwordRequireDigit: boolean;
+  passwordRequireSymbol: boolean;
+  passwordExpiryDays: number;
+  passwordHistoryCount: number;
+  /* FR-060 — đăng nhập */
+  maxFailedAttempts: number;
+  lockoutMinutes: number;
+  sessionTimeoutMinutes: number;
+  mfaRequiredForRoles: UserRoleCode[];
+  ipAllowlistEnabled: boolean;
+  ipAllowlist: string[];
+}
+
+/** FR-060 · Nhật ký đăng nhập, phục vụ điều tra sự cố truy cập. */
+export interface LoginAuditEntry {
+  id: number;
+  username: string;
+  occurredAt: string;
+  result: 'SUCCESS' | 'FAILED_PASSWORD' | 'FAILED_MFA' | 'LOCKED_OUT';
+  ipAddress: string;
+  userAgent: string;
+  failReason?: string;
+}
