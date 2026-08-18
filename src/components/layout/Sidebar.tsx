@@ -21,8 +21,33 @@ import {
   CalendarDays,
   FileText,
   X,
+  Library,
+  BookMarked,
+  ListChecks,
+  Table2,
+  Calculator,
+  Boxes,
+  GitBranch,
 } from 'lucide-react';
 import { UserRoleCode } from '../../types/hnx';
+
+/**
+ * Menu khối quản trị metadata. Khai báo dạng dữ liệu thay vì tám khối JSX lặp
+ * nhau: tám mục này chỉ khác nhau ở mã, nhãn và icon, nên viết tay tám lần chỉ
+ * tạo thêm tám chỗ để lệch class khi sửa giao diện.
+ *
+ * Mã phải giữ tiền tố `meta_` — App.tsx định tuyến theo tiền tố này.
+ */
+const METADATA_NAV = [
+  { code: 'meta_catalogs', label: 'Danh mục dùng chung (FR-045)', Icon: Library },
+  { code: 'meta_dictionary', label: 'Từ điển dữ liệu (FR-052)', Icon: BookMarked },
+  { code: 'meta_holidays', label: 'Ngày nghỉ & làm bù (FR-053)', Icon: CalendarDays },
+  { code: 'meta_fields', label: 'Khai báo trường CBTT (FR-046)', Icon: ListChecks },
+  { code: 'meta_template_fields', label: 'Trường trong mẫu (FR-048)', Icon: Table2 },
+  { code: 'meta_fs_templates', label: 'Mẫu báo cáo tài chính (FR-049)', Icon: Calculator },
+  { code: 'meta_datastruct', label: 'Cấu trúc dữ liệu (FR-050,051)', Icon: Boxes },
+  { code: 'meta_workflows', label: 'Khai báo Workflow (FR-054)', Icon: GitBranch },
+] as const;
 
 interface SidebarProps {
   activeModule: string;
@@ -402,6 +427,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Users className="h-4 w-4" />
               <span>Tài khoản & Phân quyền ABAC</span>
             </button>
+          </div>
+        )}
+
+        {/*
+          Quản trị Metadata — tầng 0-1 của bản đồ phụ thuộc PRD §3.4.
+          Tách khỏi nhóm "Quản trị Hệ thống" ở trên vì đây là cấu hình nghiệp vụ
+          (danh mục, trường, mẫu, quy trình), không phải vận hành hệ thống. Toàn bộ
+          nghiệp vụ phía sau chỉ chạy đúng khi khối này được khai báo trước.
+        */}
+        {canSeeAdmin && (
+          <div className="space-y-1">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+              Quản trị Metadata
+            </div>
+
+            {METADATA_NAV.map(({ code, label, Icon }) => (
+              <button
+                key={code}
+                onClick={() => pickModule(code)}
+                className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-sm font-semibold transition-all ${
+                  activeModule === code
+                    ? 'bg-indigo-600 text-white font-bold border-l-4 border-white shadow-xs'
+                    : 'hover:bg-slate-800 text-slate-300'
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="text-left leading-tight">{label}</span>
+              </button>
+            ))}
           </div>
         )}
       </nav>

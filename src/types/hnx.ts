@@ -726,3 +726,115 @@ export interface CatalogItem {
   isActive: boolean;
   usageCount: number;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Metadata quản trị (FR-045 → FR-054)
+ *
+ * `usageCount` lặp lại ở nhiều interface dưới đây là có chủ đích, không phải
+ * thừa: quy tắc X6 của PRD — "xóa chỉ khi chưa dùng; đã dùng thì chỉ inactive"
+ * — áp cho từng loại metadata, và mỗi loại đếm tham chiếu từ một nguồn khác
+ * nhau. Gộp thành một trường dùng chung sẽ che mất điều đó.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** FR-053 · Ngày nghỉ lễ và ngày làm bù. Nền của mọi phép tính hạn trong hệ thống. */
+export interface HolidayEntry extends BaseEntity {
+  fromDate: string;
+  toDate: string;
+  year: number;
+  /** MAKEUP_WORKDAY là ngày làm bù: rơi vào T7/CN nhưng vẫn tính là ngày làm việc. */
+  holidayType: 'HOLIDAY' | 'MAKEUP_WORKDAY';
+  nameVi: string;
+  nameEn?: string;
+  legalBasis?: string;
+  /** Số nghĩa vụ đã chốt hạn dựa trên ngày này (AC-053-5). */
+  usageCount: number;
+}
+
+/** FR-052 · Từ điển thuật ngữ/viết tắt. Cũng là nguồn để AI mở rộng viết tắt (FR-032). */
+export interface DictionaryEntry extends BaseEntity {
+  termCode: string;
+  termValue: string;
+  termType: 'ABBREVIATION' | 'TERM' | 'LEGAL_REF' | 'UNIT';
+  description?: string;
+  isActive: boolean;
+  usageCount: number;
+}
+
+/** FR-049 · Mẫu báo cáo tài chính. */
+export interface FsTemplate extends BaseEntity {
+  templateCode: string;
+  nameVi: string;
+  fsType: 'BALANCE_SHEET' | 'INCOME_STATEMENT' | 'CASH_FLOW' | 'NOTES';
+  periodType: 'QUARTER' | 'SEMI_ANNUAL' | 'ANNUAL';
+  isActive: boolean;
+  /** Số BCTC đã nộp theo mẫu này — chặn xóa (AC-049-6). */
+  usageCount: number;
+}
+
+/** FR-049 · Chỉ tiêu hàng của mẫu BCTC; `formulaExpr` dạng `[100] + [200]`. */
+export interface FsTemplateRow {
+  id: number;
+  fsTemplateId: number;
+  rowCode: string;
+  nameVi: string;
+  level: number;
+  sortOrder: number;
+  dataType: 'NUMBER' | 'TEXT';
+  /** Rỗng = ô nhập tay. Có giá trị = ô tính tự động từ các chỉ tiêu khác. */
+  formulaExpr?: string;
+}
+
+/** FR-049 · Chỉ tiêu cột (kỳ này / kỳ trước / thuyết minh…). */
+export interface FsTemplateCol {
+  id: number;
+  fsTemplateId: number;
+  colCode: string;
+  nameVi: string;
+  sortOrder: number;
+}
+
+/** FR-050 / FR-051 · Mẫu cấu trúc dữ liệu và trường chi tiết của nó. */
+export interface DataStructureTemplate extends BaseEntity {
+  structCode: string;
+  nameVi: string;
+  targetEntity: string;
+  isActive: boolean;
+  usageCount: number;
+}
+
+export interface DataStructureField {
+  id: number;
+  structTemplateId: number;
+  fieldCode: string;
+  nameVi: string;
+  dataType: 'TEXT' | 'NUMBER' | 'DATE' | 'BOOLEAN' | 'PICKLIST';
+  lookupCatalogCode?: string;
+  isRequired: boolean;
+  sortOrder: number;
+}
+
+/** FR-057 · Trục 1 của AuthZ Engine — quyền theo chức năng. */
+export interface Permission {
+  id: number;
+  permissionCode: string;
+  resourceType: string;
+  action: string;
+  nameVi: string;
+  moduleCode?: string;
+  isActive: boolean;
+}
+
+/**
+ * FR-057 · Gán quyền cho vai trò.
+ *
+ * `allowedStatuses` là trục 3 của AuthZ Engine: cùng một quyền có thể chỉ được
+ * phép khi bản ghi đang ở một số trạng thái nhất định (ví dụ chỉ sửa được hồ sơ
+ * khi còn DRAFT). Null = không ràng buộc trạng thái.
+ */
+export interface RolePermission {
+  id: number;
+  roleCode: UserRoleCode;
+  permissionId: number;
+  allowedStatuses?: string[] | null;
+  effect: 'ALLOW' | 'DENY';
+}

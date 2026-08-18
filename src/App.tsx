@@ -44,6 +44,7 @@ import { AiCenterModule } from './components/modules/AiCenterModule';
 import { BondModule } from './components/modules/BondModule';
 import { DisclosureModule } from './components/modules/DisclosureModule';
 import { AdminModule } from './components/modules/AdminModule';
+import { MetadataModule } from './components/modules/MetadataModule';
 
 export default function App() {
   // Global State
@@ -565,6 +566,14 @@ export default function App() {
                   onUpdateTemplate={(updated) =>
                     setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
                   }
+                />
+              )}
+
+              {activeModule.startsWith('meta_') && (
+                <MetadataModule
+                  activeModule={activeModule}
+                  userRole={currentUser.roleCode}
+                  templates={templates}
                 />
               )}
             </>
