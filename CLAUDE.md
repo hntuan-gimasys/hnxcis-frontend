@@ -49,17 +49,27 @@ backend accepts anonymous calls while its own `AUTH_REQUIRED=false`.
 
 ## Architecture
 
-### Portal / module routing (no router library)
+### Portal routing (URL paths, hand-rolled — no router library)
 
-`App.tsx` holds two pieces of top-level state and switches on them with plain conditionals — there
-is no react-router:
+The three portals are three **separate URLs**, not tabs of one page. `src/lib/portalRoute.ts` maps
+path → portal, listens to `popstate`, and normalises unknown paths. There is no react-router: the
+app has exactly three top-level paths, while navigation *inside* IMS stays state-based
+(`activeModule`, dozens of screens). nginx already has SPA fallback, so deep links work in prod.
 
-- `activePortal: 'internal' | 'corporate' | 'public'` — which top-level shell renders in `<main>`.
-  - `public` → `PublicCorporateNews` (read-only public news feed, no auth)
-  - `corporate` → `CorporatePortal` (organization self-service: submit E-Form filings, view own
-    obligations/history) — internally does its own `activeModule` switch (`corp_dashboard`,
-    `corp_filing`, `corp_history`)
-  - `internal` → HNX staff workspace, gated further by `activeModule`
+| Path | Portal | Auth |
+| --- | --- | --- |
+| `/ims` | HNX staff workspace, gated further by `activeModule` | **Login required** |
+| `/icds` | `CorporatePortal` — organization self-service (`corp_dashboard`, `corp_filing`, `corp_history`) | Free |
+| `/news` | `PublicCorporateNews` — public news feed | Free |
+
+`/` and any unknown path redirect to `/news` (the public face). Only `/ims` renders `LoginScreen`;
+it accepts `actorType === 'HNX'` accounts only and points organization accounts to `/icds`.
+
+There is deliberately **no in-app switcher between the three** — the header shows which portal you
+are in, nothing more. Users reach a portal by its own URL, like separate sites.
+
+At `/icds` there is no logged-in user, so `App.tsx` passes a `guestOrgUser` (first `ORGANIZATION`
+persona) as `portalUser` for org context; `/news` needs no user at all.
 - `activeModule: string` — inside the internal portal, the *prefix* of this string selects which
   module component renders, mirroring the department that owns that function:
   - `dashboard`, `ai_center` → standalone modules

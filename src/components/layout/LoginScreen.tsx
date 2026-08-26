@@ -74,6 +74,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
       setError(`Tài khoản đang ở trạng thái ${found.status} — không đăng nhập được. Liên hệ quản trị hệ thống.`);
       return;
     }
+    /**
+     * IMS là khu vực nghiệp vụ nội bộ của HNX. Tài khoản doanh nghiệp không vào
+     * đây — ICDS đã tách thành cổng riêng và vào tự do, nên chỉ đường sang đó
+     * thay vì báo "sai mật khẩu" và để người dùng thử lại vô ích.
+     */
+    if (found.actorType !== 'HNX') {
+      setError(
+        'Tài khoản này thuộc doanh nghiệp, không dùng cho cổng nội bộ IMS. ' +
+          'Cổng doanh nghiệp ICDS ở địa chỉ /icds và không cần đăng nhập.',
+      );
+      return;
+    }
 
     setError(null);
     setFailedCount(0);
@@ -215,10 +227,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
 
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              Tài khoản thử nghiệm
+              Tài khoản nội bộ thử nghiệm
             </p>
+            {/*
+              Chỉ liệt kê tài khoản HNX. Trước đây danh sách này trộn cả tài khoản
+              doanh nghiệp, khiến người dùng tưởng phải đăng nhập mới vào được cổng
+              doanh nghiệp — trong khi ICDS đã tách riêng và vào tự do.
+            */}
             <div className="flex flex-wrap gap-1.5">
-              {users.slice(0, 5).map((u) => (
+              {users.filter((u) => u.actorType === 'HNX').map((u) => (
                 <button
                   key={u.id}
                   onClick={() => {
@@ -236,6 +253,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
               Prototype chưa nối backend xác thực nên mật khẩu không được kiểm tra thật — chỉ cần khác rỗng.
               Ràng buộc số lần sai, khóa tài khoản và xác thực hai yếu tố thì có hiệu lực thật.
             </p>
+
+            <div className="mt-3 pt-3 border-t border-slate-200 text-[11px] text-slate-600 leading-relaxed">
+              Chỉ cổng nội bộ <strong>IMS</strong> yêu cầu đăng nhập. Hai cổng còn lại vào tự do:
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
+                <a href="/icds" className="text-emerald-700 hover:underline">/icds — Cổng Doanh nghiệp</a>
+                <a href="/news" className="text-emerald-700 hover:underline">/news — Corporate News</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

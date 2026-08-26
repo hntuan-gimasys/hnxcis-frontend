@@ -55,11 +55,24 @@ import { SurveyModule } from './components/modules/SurveyModule';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { INITIAL_SECURITY_POLICY } from './data/accessMock';
 import { EXTRA_TEMPLATES } from './data/businessMock';
+import { usePortalRoute, portalFromPath } from './lib/portalRoute';
 
 export default function App() {
-  // Global State
-  const [activePortal, setActivePortal] = useState<'internal' | 'corporate' | 'public'>('internal');
-  const [activeModule, setActiveModule] = useState<string>('dashboard');
+  /**
+   * Ba cổng là ba địa chỉ URL riêng (/ims, /icds, /news) chứ không phải ba tab.
+   * `usePortalRoute` đọc đường dẫn hiện tại và nghe nút Back của trình duyệt.
+   */
+  const { portal: activePortal, goToPortal } = usePortalRoute();
+
+  /**
+   * Module mặc định phụ thuộc cổng: vào /icds là vào thẳng dashboard doanh
+   * nghiệp, không phải dashboard nội bộ.
+   */
+  const [activeModule, setActiveModule] = useState<string>(() =>
+    portalFromPath(typeof window === 'undefined' ? '/news' : window.location.pathname) === 'corporate'
+      ? 'corp_dashboard'
+      : 'dashboard',
+  );
   const [lang, setLang] = useState<'vi' | 'en'>('vi');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -68,14 +81,24 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount>(INITIAL_USERS[1]); // Cán bộ P.QLNY by default
 
   /**
-   * FR-060 — cổng đăng nhập.
+   * FR-060 — trạng thái đăng nhập, chỉ áp cho cổng IMS.
    *
-   * Trước đây ứng dụng vào thẳng cổng nội bộ, không có bước xác thực nào, nên
-   * FR-055/059/060 không có gì để rà. `authenticated` giữ đúng một trạng thái:
-   * đã qua màn đăng nhập hay chưa. Dropdown đổi persona ở header vẫn giữ nguyên
-   * cho tiện thử nghiệm sau khi đã vào.
+   * ICDS và Corporate News vào tự do như một trang tin: không có bước xác thực,
+   * không có "người dùng hiện tại". Vì vậy `authenticated` chỉ được kiểm tra khi
+   * đang ở /ims.
    */
   const [authenticated, setAuthenticated] = useState(false);
+
+  /**
+   * Người dùng mặc định cho cổng ICDS khi không đăng nhập. CorporatePortal cần
+   * biết mình đang đại diện tổ chức nào để lọc nghĩa vụ và hồ sơ; ở prototype
+   * này lấy cố định persona doanh nghiệp đầu tiên, khớp với tên tổ chức đang
+   * hiển thị cứng trong Sidebar.
+   */
+  const guestOrgUser = useMemo(
+    () => INITIAL_USERS.find((u) => u.actorType === 'ORGANIZATION') ?? INITIAL_USERS[0],
+    [],
+  );
 
   // Entities Data
   const [organizations] = useState(INITIAL_ORGANIZATIONS);
@@ -452,11 +475,13 @@ export default function App() {
   };
 
   /**
-   * Cổng công khai (Corporate News) cố ý KHÔNG yêu cầu đăng nhập — theo FR-066
-   * đó là website công khai cho nhà đầu tư. Chỉ hai cổng nội bộ và doanh nghiệp
-   * mới đi qua màn xác thực.
+   * Chỉ IMS bắt đăng nhập.
+   *
+   * ICDS (FR-062, cổng doanh nghiệp) và Corporate News (FR-066, trang tin công
+   * khai) vào tự do — người dùng gõ thẳng địa chỉ là đọc được ngay, giống một
+   * trang báo. Chỉ khu vực nghiệp vụ nội bộ của HNX mới cần xác thực.
    */
-  if (!authenticated && activePortal !== 'public') {
+  if (activePortal === 'internal' && !authenticated) {
     return (
       <LoginScreen
         users={users}
@@ -464,42 +489,34 @@ export default function App() {
         onAuthenticated={(user) => {
           setCurrentUser(user);
           setAuthenticated(true);
-          setActivePortal(user.actorType === 'ORGANIZATION' ? 'corporate' : 'internal');
-          setActiveModule(user.actorType === 'ORGANIZATION' ? 'corp_dashboard' : 'dashboard');
+          setActiveModule('dashboard');
         }}
       />
     );
   }
+
+  /** Ở hai cổng tự do, danh tính là khách — không phải người vừa đăng nhập IMS. */
+  const portalUser = activePortal === 'corporate' ? guestOrgUser : currentUser;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
       {/* Header */}
       <Header
         activePortal={activePortal}
-        setActivePortal={(portal) => {
-          setActivePortal(portal);
-          if (portal === 'corporate') {
-            setActiveModule('corp_dashboard');
-          } else if (portal === 'internal') {
-            setActiveModule('dashboard');
-          }
-        }}
-        currentUser={currentUser}
-        allUsers={users}
-        onSelectUser={(u) => {
-          setCurrentUser(u);
-          if (u.actorType === 'ORGANIZATION') {
-            setActivePortal('corporate');
-            setActiveModule('corp_dashboard');
-          } else if (u.actorType === 'HNX') {
-            setActivePortal('internal');
-            setActiveModule('dashboard');
-          }
-        }}
+        currentUser={portalUser}
         notifications={allNotifications}
         lang={lang}
         setLang={setLang}
         onOpenMenu={() => setSidebarOpen(true)}
+        onLogout={
+          activePortal === 'internal'
+            ? () => {
+                setAuthenticated(false);
+                setActiveModule('dashboard');
+                goToPortal('public');
+              }
+            : undefined
+        }
       />
 
       {/* Main Container */}
@@ -508,7 +525,7 @@ export default function App() {
         <Sidebar
           activeModule={activeModule}
           setActiveModule={setActiveModule}
-          userRole={currentUser.roleCode}
+          userRole={portalUser.roleCode}
           activePortal={activePortal}
           mobileOpen={sidebarOpen}
           onCloseMobile={() => setSidebarOpen(false)}
@@ -529,7 +546,7 @@ export default function App() {
           {activePortal === 'corporate' && (
             <CorporatePortal
               activeModule={activeModule}
-              currentUser={currentUser}
+              currentUser={portalUser}
               organizations={organizations}
               obligations={obligations}
               submissions={submissions}
