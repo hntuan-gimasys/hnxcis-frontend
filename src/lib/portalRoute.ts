@@ -5,6 +5,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { imsModuleFromPath } from './imsRoutes';
+
 /**
  * Định tuyến ba cổng theo đường dẫn URL.
  *
@@ -73,8 +75,14 @@ export function usePortalRoute(): { portal: Portal; goToPortal: (next: Portal) =
    * Chuẩn hoá `/` và các đường dẫn lạ thành đường dẫn thật, dùng replaceState để
    * không tạo thêm một mục trong lịch sử duyệt — bấm Back từ /news sẽ quay về
    * trang trước đó chứ không kẹt lại ở chính /news.
+   *
+   * Ngoại lệ: `/ims/<ma-uc>` là đường dẫn thật của một chức năng IMS (xem
+   * `imsRoutes.ts`), không phải đường dẫn lạ — giữ nguyên, nếu không mọi deep
+   * link tới màn hình danh mục sẽ bị đẩy về `/ims` ngay khi tải trang.
    */
   useEffect(() => {
+    if (imsModuleFromPath(window.location.pathname)) return;
+
     const expected = PORTAL_PATH[portalFromPath(window.location.pathname)];
     if (window.location.pathname !== expected) {
       window.history.replaceState({}, '', expected + window.location.search);

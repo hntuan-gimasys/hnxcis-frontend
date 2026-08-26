@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   INITIAL_ORGANIZATIONS,
   INITIAL_SECURITIES,
@@ -56,6 +56,13 @@ import { LoginScreen } from './components/layout/LoginScreen';
 import { INITIAL_SECURITY_POLICY } from './data/accessMock';
 import { EXTRA_TEMPLATES } from './data/businessMock';
 import { usePortalRoute, portalFromPath } from './lib/portalRoute';
+import {
+  DEFAULT_IMS_MODULE,
+  imsModuleFromPath,
+  imsPathForModule,
+  isImsUseCaseModule,
+} from './lib/imsRoutes';
+import { UseCaseRouter } from './components/modules/usecases';
 
 export default function App() {
   /**
@@ -68,11 +75,46 @@ export default function App() {
    * Module mặc định phụ thuộc cổng: vào /icds là vào thẳng dashboard doanh
    * nghiệp, không phải dashboard nội bộ.
    */
-  const [activeModule, setActiveModule] = useState<string>(() =>
-    portalFromPath(typeof window === 'undefined' ? '/news' : window.location.pathname) === 'corporate'
-      ? 'corp_dashboard'
-      : 'dashboard',
+  const [activeModule, setActiveModule] = useState<string>(() => {
+    const path = typeof window === 'undefined' ? '/news' : window.location.pathname;
+    if (portalFromPath(path) === 'corporate') return 'corp_dashboard';
+    return imsModuleFromPath(path) ?? DEFAULT_IMS_MODULE;
+  });
+
+  /**
+   * Bấm menu /ims phải đổi cả màn hình lẫn đường dẫn.
+   *
+   * Các chức năng có SRS mang một URL thật (`/ims/<ma-uc>`) nên gửi link được;
+   * những module chỉ điều hướng bằng state như trước (qlny_*, meta_*...) không có
+   * slug riêng, `imsPathForModule` trả về `/ims` và đường dẫn giữ nguyên.
+   */
+  const changeModule = useCallback(
+    (moduleCode: string) => {
+      setActiveModule(moduleCode);
+
+      if (activePortal !== 'internal') return;
+
+      const nextPath = imsPathForModule(moduleCode);
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, '', nextPath);
+      }
+    },
+    [activePortal],
   );
+
+  /**
+   * Nút Back/Forward của trình duyệt phải kéo màn hình đi theo. `usePortalRoute`
+   * chỉ nghe popstate để biết đang ở cổng nào — nó không biết gì về module.
+   */
+  useEffect(() => {
+    const onPop = () => {
+      const moduleCode = imsModuleFromPath(window.location.pathname);
+      if (moduleCode) setActiveModule(moduleCode);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const [lang, setLang] = useState<'vi' | 'en'>('vi');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -489,7 +531,9 @@ export default function App() {
         onAuthenticated={(user) => {
           setCurrentUser(user);
           setAuthenticated(true);
-          setActiveModule('dashboard');
+          // Người dùng gõ thẳng /ims/ims-004 rồi mới đăng nhập thì vào đúng màn
+          // hình đó, không bị đẩy về màn hình mặc định.
+          setActiveModule(imsModuleFromPath(window.location.pathname) ?? DEFAULT_IMS_MODULE);
         }}
       />
     );
@@ -512,7 +556,7 @@ export default function App() {
           activePortal === 'internal'
             ? () => {
                 setAuthenticated(false);
-                setActiveModule('dashboard');
+                setActiveModule(DEFAULT_IMS_MODULE);
                 goToPortal('public');
               }
             : undefined
@@ -524,7 +568,7 @@ export default function App() {
         {/* Sidebar */}
         <Sidebar
           activeModule={activeModule}
-          setActiveModule={setActiveModule}
+          setActiveModule={changeModule}
           userRole={portalUser.roleCode}
           activePortal={activePortal}
           mobileOpen={sidebarOpen}
@@ -562,6 +606,9 @@ export default function App() {
 
           {activePortal === 'internal' && (
             <>
+              {/* Các chức năng đã có SRS — xem `lib/imsRoutes.ts`. */}
+              {isImsUseCaseModule(activeModule) && <UseCaseRouter activeModule={activeModule} />}
+
               {activeModule === 'dashboard' && (
                 <DashboardModule
                   submissions={submissions}

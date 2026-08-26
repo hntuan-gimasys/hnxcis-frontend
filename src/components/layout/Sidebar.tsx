@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   FileSpreadsheet,
@@ -46,6 +46,14 @@ import {
   EyeOff,
   BarChart3,
   ClipboardList,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  Map,
+  MapPin,
+  Network,
+  IdCard,
+  Briefcase,
 } from 'lucide-react';
 
 /** Nhóm menu khai báo bằng dữ liệu; `Icon` là component nên viết hoa đầu. */
@@ -55,6 +63,37 @@ interface NavItem {
   readonly Icon: React.ComponentType<{ className?: string }>;
 }
 import { UserRoleCode } from '../../types/hnx';
+import { IMS_USE_CASES } from '../../lib/imsRoutes';
+
+/**
+ * Icon cho bảy chức năng có SRS ở khối "Quản lý Danh mục" của cổng IMS.
+ *
+ * Nhãn, mã UC và đường dẫn nằm ở `lib/imsRoutes.ts` — đó là dữ liệu định tuyến,
+ * dùng chung với App.tsx và portalRoute.ts. Chỉ riêng icon ở lại đây vì nó là
+ * chuyện của giao diện, và `lib/` không nên phụ thuộc vào lucide-react.
+ */
+const IMS_USE_CASE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  uc_ims_002: Globe,
+  uc_ims_003: Map,
+  uc_ims_004: MapPin,
+  uc_ims_006: Network,
+  uc_hnx_srs: IdCard,
+  uc_ims_008: Briefcase,
+  uc_ims_015: BookMarked,
+};
+
+/**
+ * Menu cũ của cổng IMS — tạm ẩn, không xoá.
+ *
+ * Giai đoạn này sidebar /ims chỉ hiển thị các chức năng đã có SRS trong
+ * `docs/srs/`. Toàn bộ khối menu dựng theo PRD trước đây (Dashboard, P.QLNY,
+ * P.TTTP, P.TTTT, Metadata, Access...) cùng các màn hình phía sau vẫn còn nguyên
+ * trong repo; bật lại cờ này là menu cũ hiện lại đầy đủ. Xoá hẳn sẽ làm mất
+ * đường vào hàng chục màn hình đã dựng xong mà chưa có gì thay thế.
+ *
+ * KHÔNG ảnh hưởng /icds và /news: hai cổng đó có nhánh render riêng phía trên.
+ */
+const SHOW_LEGACY_IMS_NAV = false;
 
 /**
  * Menu khối quản trị metadata. Khai báo dạng dữ liệu thay vì tám khối JSX lặp
@@ -136,6 +175,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen = false,
   onCloseMobile,
 }) => {
+  /**
+   * Nhóm "Quản lý Danh mục" mở sẵn — đó là toàn bộ nội dung menu /ims hiện tại,
+   * mở sẵn để người dùng không phải bấm thêm một lần mới thấy chức năng nào.
+   *
+   * Hook phải đứng trước nhánh `return null` bên dưới: sidebar bị bỏ render ở
+   * cổng public, nếu khai báo state sau đó thì số hook sẽ lệch khi đổi cổng.
+   */
+  const [catalogOpen, setCatalogOpen] = useState(true);
+
   if (activePortal === 'public') {
     return null;
   }
@@ -289,6 +337,65 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <nav className="p-3 space-y-6 text-xs overflow-y-auto max-h-[calc(100vh-5rem)]">
+        {/*
+          Khối chức năng đã có SRS (docs/srs/) — cấu trúc menu lấy theo file mẫu
+          docs/quan-ly-danh-muc_2.html: một nhãn nhóm không bấm được ("Quản lý hệ
+          thống"), một nhóm con gập/mở ("Quản lý Danh mục"), rồi các mục con thụt
+          vào có dấu tròn dẫn.
+
+          Mỗi mục là một URL thật (`/ims/<ma-uc>`); App.tsx đẩy đường dẫn khi
+          `activeModule` đổi, nên bấm menu là địa chỉ trên thanh URL đổi theo và
+          copy link gửi cho người khác vẫn mở đúng màn hình.
+        */}
+        <div className="space-y-0.5">
+          <div className="flex select-none items-center gap-2 rounded-lg px-2.5 py-2.5 text-[13px] font-medium text-white/90">
+            <Settings className="h-4 w-4 shrink-0 opacity-90" />
+            <span>Quản lý hệ thống</span>
+            <ChevronDown className="ml-auto h-3.5 w-3.5 opacity-90" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setCatalogOpen((open) => !open)}
+            aria-expanded={catalogOpen}
+            className="flex w-full items-center gap-2 rounded-lg py-2 pr-2.5 pl-5 text-[13px] font-medium text-white/95 hover:bg-white/[0.06]"
+          >
+            <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-85" />
+            <span>Quản lý Danh mục</span>
+            {catalogOpen ? (
+              <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 opacity-85" />
+            ) : (
+              <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 opacity-85" />
+            )}
+          </button>
+
+          {catalogOpen && (
+            <div className="mt-0.5 mb-2 pl-3.5">
+              {IMS_USE_CASES.map((uc) => {
+                const Icon = IMS_USE_CASE_ICONS[uc.code] ?? Library;
+                return (
+                  <button
+                    key={uc.code}
+                    onClick={() => pickModule(uc.code)}
+                    title={`${uc.ucCode} — ${uc.label}`}
+                    className={`my-px flex w-full items-center gap-2.5 rounded-lg py-2 pr-2.5 pl-5 text-left text-[13px] transition-colors ${
+                      activeModule === uc.code
+                        ? 'bg-white/[0.16] font-medium text-white'
+                        : 'text-white/80 hover:bg-white/[0.08] hover:text-white'
+                    }`}
+                  >
+                    <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-70" />
+                    <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                    <span className="leading-tight">{uc.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {SHOW_LEGACY_IMS_NAV && (
+          <>
         {/* General Overview */}
         <div className="space-y-1">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
@@ -584,6 +691,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             ))}
           </div>
+        )}
+          </>
         )}
       </nav>
     </aside>

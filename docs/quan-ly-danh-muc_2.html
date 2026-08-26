@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quản lý danh mục - HNX3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --text-primary:#292929;
+    --text-secondary:#525252;
+    --text-tertiary:#858585;
+    --text-disable:#9E9E9E;
+    --text-disable-2:#B8B8B8;
+    --text-white:#FFFFFF;
+    --border:#E5E5E5;
+    --border-light:#F1F1F1;
+    --bg-page:#F9FAFB;
+    --bg-white:#FFFFFF;
+    --bg-gray:#F3F3F3;
+    --brand-1:#003F27;
+    --brand-2:#00663D;
+    --brand-3:#009F5F;
+    --brand-4:#22AF73;
+    --brand-gradient:linear-gradient(90deg,#003F27 0%,#00663D 30%,#009F5F 60%,#22AF73 100%);
+    --brand-gradient-hover:linear-gradient(90deg,#003621 0%,#005734 30%,#008751 60%,#1D9562 100%);
+    --success-bg:#E6F4EA;
+    --success-text:#1E7A42;
+    --success-dot:#22AF73;
+    --warning-bg:#FDF1E0;
+    --warning-text:#B9691B;
+    --warning-dot:#E8A33D;
+    --danger:#D93025;
+    --shadow-card:0 1px 2px rgba(16,24,32,0.06);
+    --shadow-modal:0 20px 60px rgba(0,20,10,0.25);
+    --radius-sm:6px;
+    --radius-md:8px;
+    --radius-lg:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Roboto',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg-page);
+    color:var(--text-primary);
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  input,select{font-family:inherit;}
+
+  /* ---------- App shell ---------- */
+  .app{display:flex; min-height:100vh;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:260px; flex:0 0 260px;
+    background:var(--brand-gradient);
+    background-size:220% 100%;
+    color:#fff;
+    display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .sidebar-logo{
+    height:64px; display:flex; align-items:center; gap:10px;
+    padding:0 16px; border-bottom:1px solid rgba(255,255,255,0.14);
+    flex:0 0 auto;
+  }
+  .sidebar-logo .mark{
+    width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.15);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .sidebar-logo .mark svg{width:18px;height:18px;}
+  .sidebar-logo .name{font-weight:700;font-size:13px;line-height:1.2;letter-spacing:.2px;}
+  .sidebar-logo .sub{font-size:9.5px;font-weight:400;opacity:.75;line-height:1.3;}
+
+  .sidebar-nav{flex:1 1 auto; overflow-y:auto; padding:12px 12px 12px;}
+  .nav-group-label{
+    display:flex;align-items:center;gap:8px;
+    padding:9px 10px; font-size:13px; font-weight:500; color:rgba(255,255,255,.92);
+    border-radius:8px; cursor:default; user-select:none;
+  }
+  .nav-group-label svg{width:16px;height:16px;flex:0 0 auto;opacity:.9;}
+  .nav-group-label .chev{margin-left:auto;}
+  .nav-group-sub{
+    display:flex;align-items:center;gap:8px; width:100%; border:none; background:transparent;
+    padding:8px 10px 8px 20px; font-size:13px; font-weight:500; color:rgba(255,255,255,.95);
+    border-radius:8px; cursor:pointer; user-select:none;
+  }
+  .nav-group-sub .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.85;flex:0 0 auto;}
+  .nav-group-sub svg{width:14px;height:14px;flex:0 0 auto;margin-left:auto;opacity:.85;}
+  .nav-group-sub:hover{background:rgba(255,255,255,0.06);}
+  .nav-sub{padding-left:14px; margin:2px 0 8px; position:relative;}
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 10px 8px 20px; margin:1px 0; border-radius:8px;
+    font-size:13px; color:rgba(255,255,255,.8); cursor:pointer;
+    border:none; background:transparent; width:100%; text-align:left;
+    transition:background .12s ease, color .12s ease;
+  }
+  .nav-item .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7;flex:0 0 auto;}
+  .nav-item:hover{background:rgba(255,255,255,0.08); color:#fff;}
+  .nav-item.active{background:rgba(255,255,255,0.16); color:#fff; font-weight:500;}
+
+  .sidebar-footer{
+    flex:0 0 auto; display:flex; align-items:center; gap:10px;
+    padding:14px 16px; border-top:1px solid rgba(255,255,255,0.14);
+  }
+  .sidebar-footer .avatar{
+    width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;
+  }
+  .sidebar-footer .who{line-height:1.3;flex:1 1 auto;min-width:0;}
+  .sidebar-footer .who .n{font-size:12.5px;font-weight:500;}
+  .sidebar-footer .who .e{font-size:11px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-footer svg{width:16px;height:16px;opacity:.8;flex:0 0 auto;}
+
+  /* ---------- Header ---------- */
+  .main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column;}
+  .header{
+    height:64px; flex:0 0 auto; background:#fff; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; padding:0 24px;
+  }
+  .global-search{
+    display:flex; align-items:center; gap:8px; width:320px; height:36px;
+    border:1px solid var(--border); background:var(--bg-page); border-radius:8px;
+    padding:0 8px 0 12px; color:var(--text-tertiary);
+  }
+  .global-search svg{width:16px;height:16px;flex:0 0 auto;}
+  .global-search input{border:none;background:transparent;outline:none;font-size:13px;color:var(--text-primary);flex:1 1 auto;min-width:0;}
+  .global-search input::placeholder{color:var(--text-tertiary);}
+  .kbd{
+    font-size:10px; color:var(--text-tertiary); border:1px solid var(--border);
+    border-radius:4px; padding:2px 6px; flex:0 0 auto; background:#fff;
+  }
+  .header-right{display:flex; align-items:center; gap:16px;}
+  .icon-btn{
+    width:34px;height:34px;border-radius:50%; border:none; background:transparent;
+    display:flex;align-items:center;justify-content:center; color:var(--text-secondary); cursor:pointer;
+    position:relative;
+  }
+  .icon-btn:hover{background:var(--bg-gray);}
+  .icon-btn svg{width:18px;height:18px;}
+  .icon-btn .notif-dot{
+    position:absolute; top:6px; right:6px; width:7px;height:7px;border-radius:50%;
+    background:var(--danger); border:1.5px solid #fff;
+  }
+  .header-avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:var(--brand-gradient); color:#fff; font-weight:600; font-size:12.5px;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- Content ---------- */
+  .content{padding:24px; flex:1 1 auto; min-width:0;}
+  .card{
+    background:#fff; border-radius:12px; box-shadow:var(--shadow-card);
+    border:1px solid var(--border); padding:24px;
+  }
+  .breadcrumb{font-size:12px; color:var(--text-tertiary); display:flex; align-items:center; gap:6px; margin-bottom:16px;}
+  .breadcrumb .current{color:var(--text-secondary);}
+  .page-heading{font-size:24px; font-weight:700; color:var(--text-primary); margin:0 0 8px;}
+  .page-sub{font-size:13px; color:var(--text-tertiary); margin:0;}
+
+  .toolbar-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 14px;
+    border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:1px solid transparent;
+    white-space:nowrap;
+  }
+  .btn svg{width:15px;height:15px;flex:0 0 auto;}
+  .btn-primary{background:var(--brand-gradient); color:#fff; box-shadow:0 1px 2px rgba(58,125,40,.25);}
+  .btn-primary:hover{background:var(--brand-gradient-hover); box-shadow:0 2px 4px rgba(58,125,40,.35);}
+  .btn-outline{background:#fff; color:var(--text-primary); border-color:var(--border);}
+  .btn-outline:hover{background:var(--bg-page);}
+  .btn-ghost{background:transparent; color:var(--text-secondary); border-color:transparent;}
+  .btn-ghost:hover{background:var(--bg-page);}
+
+  .filters-row{display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+  .search-box{
+    display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; flex:1 1 260px; max-width:340px;
+    border:1px solid var(--border); border-radius:8px; background:#F9FAFB;
+  }
+  .search-box svg{width:15px;height:15px;color:var(--text-tertiary);flex:0 0 auto;}
+  .search-box input{border:none;background:transparent;outline:none;font-size:13px;width:100%;color:var(--text-primary);}
+  .search-box input::placeholder{color:var(--text-tertiary);}
+  .select-box{
+    height:36px; border:1px solid var(--border); border-radius:8px; background:#fff; padding:0 30px 0 12px;
+    font-size:13px; color:var(--text-primary); appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center;
+  }
+  .spacer{flex:1 1 auto;}
+
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    text-align:left; font-size:13px; font-weight:600; color:var(--text-primary);
+    padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  th.sortable{cursor:pointer; user-select:none;}
+  th.sortable .th-inner{display:inline-flex; align-items:center; gap:5px;}
+  th.sortable svg{width:13px;height:13px; color:var(--text-tertiary); opacity:.55;}
+  th.sortable.sorted svg{opacity:1; color:var(--text-secondary);}
+  tbody td{
+    padding:14px 12px; font-size:14px; color:var(--text-primary); border-bottom:1px solid var(--border-light);
+  }
+  tbody tr:hover{background:#FAFCFB;}
+  td.muted{color:var(--text-disable-2);}
+  td.actions{white-space:nowrap;}
+  .row-icon-btn{
+    width:28px;height:28px;border:none;background:transparent;border-radius:6px;
+    display:inline-flex;align-items:center;justify-content:center;color:var(--text-disable);cursor:pointer;
+    margin-right:2px;
+  }
+  .row-icon-btn:hover{background:var(--bg-gray); color:var(--text-secondary);}
+  .row-icon-btn.danger:hover{background:#FDEDEC; color:var(--danger);}
+  .row-icon-btn svg{width:14px;height:14px;}
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px;
+    font-size:12px; font-weight:500;
+  }
+  .badge .dot{width:6px;height:6px;border-radius:50%;}
+  .badge.active{background:var(--success-bg); color:var(--success-text);}
+  .badge.active .dot{background:var(--success-dot);}
+  .badge.inactive{background:var(--warning-bg); color:var(--warning-text);}
+  .badge.inactive .dot{background:var(--warning-dot);}
+
+  .table-footer{
+    display:flex; align-items:center; justify-content:space-between; padding-top:14px; flex-wrap:wrap; gap:10px;
+  }
+  .footer-left{font-size:13px; color:var(--text-secondary);}
+  .footer-right{display:flex; align-items:center; gap:14px; font-size:13px; color:var(--text-secondary);}
+  .page-size-select{
+    height:32px; border:1px solid var(--border); border-radius:6px; background:var(--bg-gray);
+    padding:0 26px 0 10px; font-size:13px; color:var(--text-secondary); appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 8px center;
+  }
+  .pagination{display:flex; align-items:center; gap:4px;}
+  .page-btn{
+    width:28px;height:28px;border:none;background:transparent;border-radius:6px;
+    display:inline-flex;align-items:center;justify-content:center;color:var(--text-secondary);cursor:pointer;
+    font-size:13px;
+  }
+  .page-btn:hover:not(:disabled){background:var(--bg-gray);}
+  .page-btn:disabled{opacity:.35; cursor:default;}
+  .page-num{
+    min-width:28px; height:28px; border:none; border-radius:6px; background:var(--bg-gray);
+    color:var(--text-secondary); font-size:13px; cursor:pointer; padding:0 6px;
+  }
+  .page-num.active{background:var(--brand-2); color:#fff; font-weight:600;}
+  .page-num:hover:not(.active){background:#e9e9e9;}
+  .page-ellipsis{color:var(--text-secondary); padding:0 2px;}
+
+  .empty-state{padding:60px 20px; text-align:center; color:var(--text-tertiary);}
+  .empty-state svg{width:40px;height:40px;margin-bottom:10px;opacity:.5;}
+  .empty-state .t{font-size:14px; color:var(--text-secondary); font-weight:500; margin-bottom:4px;}
+  .empty-state .s{font-size:13px;}
+
+  /* ---------- Columns dropdown ---------- */
+  .columns-menu{
+    position:fixed; z-index:90; width:220px; background:#fff; border:1px solid var(--border);
+    border-radius:10px; box-shadow:var(--shadow-modal); padding:8px; opacity:0; transform:translateY(-4px);
+    pointer-events:none; transition:opacity .12s ease, transform .12s ease;
+    max-height:320px; overflow-y:auto;
+  }
+  .columns-menu.open{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .columns-menu .cm-title{font-size:12px; font-weight:600; color:var(--text-tertiary); padding:6px 8px 4px;}
+  .columns-menu label{
+    display:flex; align-items:center; gap:9px; padding:7px 8px; border-radius:6px; cursor:pointer;
+    font-size:13px; color:var(--text-primary);
+  }
+  .columns-menu label:hover{background:var(--bg-page);}
+  .columns-menu input[type=checkbox]{width:14px;height:14px; accent-color:var(--brand-2); cursor:pointer;}
+  .columns-menu .cm-divider{height:1px; background:var(--border); margin:6px 4px;}
+  .columns-menu .cm-reset{
+    width:100%; text-align:left; background:transparent; border:none; padding:7px 8px; border-radius:6px;
+    font-size:12.5px; color:var(--text-secondary); cursor:pointer;
+  }
+  .columns-menu .cm-reset:hover{background:var(--bg-page); color:var(--text-primary);}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(15,23,20,0.45); display:flex; align-items:center; justify-content:center;
+    z-index:100; opacity:0; pointer-events:none; transition:opacity .15s ease;
+  }
+  .modal-overlay.open{opacity:1; pointer-events:auto;}
+  .modal{
+    width:440px; max-width:calc(100vw - 32px); max-height:calc(100vh - 48px); overflow-y:auto;
+    background:#fff; border-radius:14px; box-shadow:var(--shadow-modal);
+    transform:translateY(8px) scale(.98); transition:transform .15s ease;
+  }
+  .modal-overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between; padding:18px 20px;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-header h3{margin:0; font-size:16px; font-weight:600; color:var(--text-primary);}
+  .modal-close{width:28px;height:28px;border:none;background:transparent;border-radius:6px;color:var(--text-tertiary);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .modal-close:hover{background:var(--bg-gray); color:var(--text-primary);}
+  .modal-body{padding:20px; display:flex; flex-direction:column; gap:16px;}
+  .field label{display:block; font-size:13px; font-weight:500; color:var(--text-primary); margin-bottom:6px;}
+  .field label .req{color:var(--danger); margin-left:2px;}
+  .field input[type=text],
+  .field input[type=number],
+  .field textarea,
+  .field select{
+    width:100%; height:38px; border:1px solid var(--border); border-radius:8px; padding:0 12px;
+    font-size:13px; color:var(--text-primary); outline:none; background:#fff;
+  }
+  .field select{
+    appearance:none; cursor:pointer; padding-right:30px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23525252' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+  }
+  .field textarea{height:76px; padding:10px 12px; resize:vertical; font-family:inherit;}
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--brand-3); box-shadow:0 0 0 3px rgba(0,159,95,0.12);}
+  .field .err{color:var(--danger); font-size:12px; margin-top:4px; display:none;}
+  .field.has-error input, .field.has-error select, .field.has-error textarea{border-color:var(--danger);}
+  .field.has-error .err{display:block;}
+  .modal-footer{display:flex; justify-content:flex-end; gap:10px; padding:16px 20px; border-top:1px solid var(--border);}
+
+  .confirm-modal .modal{width:380px;}
+  .confirm-body{padding:22px 20px 6px; display:flex; gap:14px;}
+  .confirm-icon{
+    width:40px;height:40px;border-radius:50%;background:#FDEDEC;color:var(--danger);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .confirm-icon svg{width:20px;height:20px;}
+  .confirm-text .t{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+  .confirm-text .s{font-size:13px;color:var(--text-tertiary);}
+
+  .toast-wrap{position:fixed; top:20px; right:20px; z-index:200; display:flex; flex-direction:column; gap:8px;}
+  .toast{
+    display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--border);
+    box-shadow:var(--shadow-card); border-radius:10px; padding:12px 16px; font-size:13px; color:var(--text-primary);
+    min-width:240px; animation:toast-in .18s ease;
+  }
+  .toast svg{width:16px;height:16px;flex:0 0 auto;}
+  .toast.success svg{color:var(--success-dot);}
+  .toast.danger svg{color:var(--danger);}
+  @keyframes toast-in{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);}}
+
+  @media (max-width:900px){
+    .sidebar{position:fixed; z-index:50; transform:translateX(-100%); transition:transform .2s ease;}
+    .sidebar.open{transform:translateX(0);}
+    .global-search{width:200px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="global-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Tìm kiếm..." />
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" title="Thông báo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot"></span>
+        </button>
+        <div class="header-avatar">HA</div>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================
+   Quản lý danh mục — HNX3
+   Dữ liệu mẫu + engine CRUD dùng chung cho 4 module:
+   Quốc gia, Tỉnh thành, Phường/Xã, Từ điển
+   ========================================================= */
+
+const ICONS = {
+  search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  sliders: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
+  download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  sortIcon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg>`,
+  chevronDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
+  chevronLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+  dChevronLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 17 13 12 18 7"/><polyline points="11 17 6 12 11 7"/></svg>`,
+  dChevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 17 11 12 6 7"/><polyline points="13 17 18 12 13 7"/></svg>`,
+  globe: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  map: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`,
+  pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  book: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  alert: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  inbox: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>`,
+};
+
+function esc(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function uid(){ return 'id_' + Math.random().toString(36).slice(2, 10); }
+
+/* ---------------- Seed data ---------------- */
+
+const countryNames = [
+  ['VN','Việt Nam'],['US','Hoa Kỳ'],['JP','Nhật Bản'],['KR','Hàn Quốc'],['CN','Trung Quốc'],
+  ['SG','Singapore'],['TH','Thái Lan'],['MY','Malaysia'],['ID','Indonesia'],['PH','Philippines'],
+  ['LA','Lào'],['KH','Campuchia'],['MM','Myanmar'],['GB','Anh'],['FR','Pháp'],
+  ['DE','Đức'],['AU','Úc'],['CA','Canada'],['IN','Ấn Độ'],['RU','Nga'],
+  ['IT','Ý'],['ES','Tây Ban Nha'],['NL','Hà Lan'],['BR','Brazil'],['AE','UAE'],
+];
+const quocgia = countryNames.map((c,i)=>({
+  id:uid(), code:c[0], name:c[1], order:i+1,
+  description: i%4===0 ? 'Thành viên ASEAN' : '',
+  status: i===22 ? 'inactive' : 'active',
+}));
+
+const provinceNames = [
+  'Hà Nội','TP Hồ Chí Minh','Hải Phòng','Đà Nẵng','Cần Thơ','Bình Dương','Đồng Nai','Khánh Hòa',
+  'Thừa Thiên Huế','Long An','An Giang','Bà Rịa - Vũng Tàu','Bắc Giang','Bắc Kạn','Bạc Liêu',
+  'Bắc Ninh','Bến Tre','Bình Định','Bình Phước','Bình Thuận','Cà Mau','Cao Bằng','Đắk Lắk',
+  'Đắk Nông','Điện Biên','Đồng Tháp','Gia Lai','Hà Giang','Hà Nam','Hà Tĩnh',
+];
+const tinhthanh = provinceNames.map((n,i)=>({
+  id:uid(), code:String(1000+i*11).slice(0,4), name:n, order:i+1,
+  description:'',
+  status: i===9 ? 'inactive' : 'active',
+}));
+
+const wardNames = [
+  'Xã Đông Hiệp','Xã Thạnh Phú','Xã Vĩnh Thạnh','Xã Thạnh Quới','Xã Hòa Lưu','Xã Vĩnh Thuận Đông',
+  'Xã Hồng Thu','Phường Mộc Sơn','Xã Lóng Sập','Xã Vân Hồ','Phường Trần Hưng Đạo','Xã Mường Chiềng',
+  'Phường Đồng Tiến','Xã Yên Lạc','Phường Ngọc Hà','Xã Bình Minh','Phường Tân Phú','Xã Đại Đồng',
+  'Phường Hòa Cường','Xã Thanh Xuân',
+];
+const phuongxa = wardNames.map((n,i)=>({
+  id:uid(), code:String(30000+i*173).slice(0,5), name:n, order:i+1,
+  description:'',
+  status: i===19 ? 'inactive' : 'active',
+}));
+
+const tudienRows = [
+  ['SPECIALIST_OPINION','DISAGREE','Không đồng ý','2','-'],
+  ['SPECIALIST_OPINION','AGREE','Đồng ý','1','-'],
+  ['SO_APPROVAL_STATUS','NEW','Tạo mới','0','-'],
+  ['SO_ADMINISTRATIVE_STATUS','035','Hồ Sơ Bị Từ Chối Giải Quyết','5','SO_APPROVAL_STATUS'],
+  ['SO_ADMINISTRATIVE_STATUS','043','Chờ NV xử lý lại','6','SO_APPROVAL_STATUS'],
+  ['SO_ADMINISTRATIVE_STATUS','007','Chờ VP tiếp nhận','1','SO_APPROVAL_STATUS'],
+  ['SO_ADMINISTRATIVE_STATUS','034','Yêu cầu bổ sung','4','SO_APPROVAL_STATUS'],
+  ['SO_ADMINISTRATIVE_STATUS','009','Chờ NV xử lý','2','SO_APPROVAL_STATUS'],
+  ['RESULT_STATUS','4','N/A','4','-'],
+  ['RESULT_STATUS','3','Tham khảo','3','-'],
+  ['RESULT_STATUS','2','Không đạt','2','-'],
+  ['RESULT_STATUS','1','Đạt','1','-'],
+  ['SPECIALIST_OPINION','NEUTRAL','Trung lập','3','-'],
+  ['SO_APPROVAL_STATUS','APPROVED','Đã duyệt','1','-'],
+  ['SO_APPROVAL_STATUS','REJECTED','Từ chối','2','-'],
+];
+const tudien = tudienRows.map((r,i)=>({
+  id:uid(), type:r[0], code:r[1], value:r[2], order:r[3], parentType:r[4],
+  description:'',
+  status: i===10 ? 'inactive' : 'active',
+}));
+
+/* ---------------- Module configuration ---------------- */
+
+const MODULES = {
+  quocgia:{
+    key:'quocgia', icon:ICONS.globe, navLabel:'Quốc gia',
+    title:'Quốc gia', sub:'Quản lý danh sách và tạo mới quốc gia',
+    addLabel:'Thêm mới', addModalTitle:'Thêm quốc gia mới', editModalTitle:'Chỉnh sửa quốc gia',
+    searchPlaceholder:'Tìm kiếm Mã, Giá trị...',
+    columns:[
+      {key:'stt', label:'STT', width:'60px'},
+      {key:'code', label:'Mã', sortable:true},
+      {key:'name', label:'Giá trị', sortable:true},
+      {key:'order', label:'Thứ tự', sortable:true},
+      {key:'description', label:'Mô tả'},
+      {key:'status', label:'Trạng thái'},
+    ],
+    fields:[
+      {key:'code', label:'Mã', required:true, placeholder:'Nhập mã quốc gia'},
+      {key:'name', label:'Tên', required:true, placeholder:'Tên quốc gia'},
+      {key:'order', label:'Thứ tự', type:'number', placeholder:'0'},
+      {key:'status', label:'Trạng thái', type:'select'},
+      {key:'description', label:'Mô tả', type:'textarea', placeholder:'Mô tả (tùy chọn)'},
+    ],
+    data: quocgia,
+  },
+  tinhthanh:{
+    key:'tinhthanh', icon:ICONS.map, navLabel:'Tỉnh thành',
+    title:'Tỉnh thành', sub:'Quản lý danh sách và tạo mới tỉnh thành',
+    addLabel:'Thêm mới', addModalTitle:'Thêm tỉnh thành mới', editModalTitle:'Chỉnh sửa',
+    searchPlaceholder:'Tìm kiếm Mã, Giá trị...',
+    columns:[
+      {key:'stt', label:'STT', width:'60px'},
+      {key:'code', label:'Mã', sortable:true},
+      {key:'name', label:'Giá trị', sortable:true},
+      {key:'description', label:'Mô tả'},
+      {key:'status', label:'Trạng thái'},
+    ],
+    fields:[
+      {key:'code', label:'Mã', required:true, placeholder:'Nhập mã tỉnh thành'},
+      {key:'name', label:'Tên', required:true, placeholder:'Tên tỉnh thành'},
+      {key:'status', label:'Trạng thái', type:'select'},
+      {key:'description', label:'Mô tả', type:'textarea', placeholder:'Mô tả (tùy chọn)'},
+    ],
+    data: tinhthanh,
+  },
+  phuongxa:{
+    key:'phuongxa', icon:ICONS.pin, navLabel:'Phường / Xã',
+    title:'Phường xã', sub:'Quản lý danh sách và tạo mới phường xã',
+    addLabel:'Thêm mới', addModalTitle:'Thêm phường xã mới', editModalTitle:'Chỉnh sửa',
+    searchPlaceholder:'Tìm kiếm Mã, Giá trị...',
+    columns:[
+      {key:'stt', label:'STT', width:'60px'},
+      {key:'code', label:'Mã', sortable:true},
+      {key:'name', label:'Tên', sortable:true},
+      {key:'description', label:'Mô tả'},
+      {key:'status', label:'Trạng thái'},
+    ],
+    fields:[
+      {key:'code', label:'Mã', required:true, placeholder:'Nhập mã phường xã'},
+      {key:'name', label:'Tên', required:true, placeholder:'Tên phường xã'},
+      {key:'status', label:'Trạng thái', type:'select'},
+      {key:'description', label:'Mô tả', type:'textarea', placeholder:'Mô tả (tùy chọn)'},
+    ],
+    data: phuongxa,
+  },
+  tudien:{
+    key:'tudien', icon:ICONS.book, navLabel:'Từ điển',
+    title:'Từ điển', sub:'Quản lý danh sách và tạo mới danh mục từ điển',
+    addLabel:'Thêm mới', addModalTitle:'Thêm danh mục từ điển', editModalTitle:'Chỉnh sửa',
+    searchPlaceholder:'Tìm kiếm Mã, Giá trị...',
+    columns:[
+      {key:'stt', label:'STT', width:'60px'},
+      {key:'type', label:'Loại', sortable:true},
+      {key:'code', label:'Mã', sortable:true},
+      {key:'value', label:'Giá trị', sortable:true},
+      {key:'order', label:'Số thứ tự', sortable:true},
+      {key:'parentType', label:'Loại cha'},
+      {key:'description', label:'Mô tả'},
+      {key:'status', label:'Trạng thái'},
+    ],
+    fields:[
+      {key:'type', label:'Loại', required:true, placeholder:'VD: SO_APPROVAL_STATUS'},
+      {key:'code', label:'Mã', required:true, placeholder:'Nhập mã'},
+      {key:'value', label:'Giá trị', required:true, placeholder:'Giá trị hiển thị'},
+      {key:'order', label:'Số thứ tự', type:'number', placeholder:'0'},
+      {key:'parentType', label:'Loại cha', placeholder:'Để trống nếu không có'},
+      {key:'status', label:'Trạng thái', type:'select'},
+      {key:'description', label:'Mô tả', type:'textarea', placeholder:'Mô tả (tùy chọn)'},
+    ],
+    data: tudien,
+  },
+};
+
+/* ---------------- App state ---------------- */
+
+const state = {
+  currentModule:'quocgia',
+  ui:{}, // per-module: {search, status, sortKey, sortDir, page, pageSize}
+};
+function uiFor(modKey){
+  if(!state.ui[modKey]) state.ui[modKey] = {search:'', status:'all', sortKey:null, sortDir:'asc', page:1, pageSize:10, visibleColumns:null};
+  return state.ui[modKey];
+}
+function ensureVisibleColumns(mod){
+  const ui = uiFor(mod.key);
+  if(!ui.visibleColumns){
+    ui.visibleColumns = {};
+    mod.columns.forEach(c => { ui.visibleColumns[c.key] = true; });
+  }
+  return ui.visibleColumns;
+}
+
+/* ---------------- Sidebar ---------------- */
+
+function renderSidebar(){
+  const nav = Object.values(MODULES).map(m => `
+    <button class="nav-item ${m.key===state.currentModule?'active':''}" data-nav="${m.key}">
+      <span class="dot"></span>${esc(m.navLabel)}
+    </button>
+  `).join('');
+
+  document.getElementById('sidebar').innerHTML = `
+    <div class="sidebar-logo">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-8h6v8"/></svg>
+      </div>
+      <div>
+        <div class="name">HANOI STOCK EXCHANGE</div>
+        <div class="sub">SỞ GIAO DỊCH CHỨNG KHOÁN HÀ NỘI</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">${ICONS.settings}<span>Quản lý hệ thống</span><span class="chev">${ICONS.chevronDown}</span></div>
+      <button class="nav-group-sub" type="button"><span class="dot"></span>Quản lý Danh mục${ICONS.chevronDown}</button>
+      <div class="nav-sub">${nav}</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="avatar">AD</div>
+      <div class="who">
+        <div class="n">Admin</div>
+        <div class="e">admin@system.vn</div>
+      </div>
+      ${ICONS.close /* placeholder swapped below */}
+    </div>
+  `;
+  // swap footer icon to a logout glyph
+  const logout = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+  document.querySelector('.sidebar-footer').lastElementChild.outerHTML = logout;
+
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.currentModule = btn.dataset.nav;
+      renderSidebar();
+      renderContent();
+    });
+  });
+}
+
+/* ---------------- Table content ---------------- */
+
+function filteredSortedRows(mod){
+  const ui = uiFor(mod.key);
+  let rows = mod.data.slice();
+
+  if(ui.search.trim()){
+    const q = ui.search.trim().toLowerCase();
+    rows = rows.filter(r => Object.values(r).some(v => String(v||'').toLowerCase().includes(q)));
+  }
+  if(ui.status !== 'all'){
+    rows = rows.filter(r => r.status === ui.status);
+  }
+  if(ui.sortKey){
+    rows.sort((a,b)=>{
+      let va = a[ui.sortKey], vb = b[ui.sortKey];
+      if(typeof va === 'string') va = va.toLowerCase();
+      if(typeof vb === 'string') vb = vb.toLowerCase();
+      if(va < vb) return ui.sortDir==='asc' ? -1 : 1;
+      if(va > vb) return ui.sortDir==='asc' ? 1 : -1;
+      return 0;
+    });
+  }
+  return rows;
+}
+
+function statusBadge(status){
+  if(status==='active') return `<span class="badge active"><span class="dot"></span>Đang hoạt động</span>`;
+  return `<span class="badge inactive"><span class="dot"></span>Ngừng hoạt động</span>`;
+}
+
+function cellValue(mod, row, col, idx){
+  if(col.key==='stt') return idx;
+  if(col.key==='status') return statusBadge(row.status);
+  if(col.key==='description'){
+    return row.description ? esc(row.description) : `<span class="muted">Chưa có mô tả</span>`;
+  }
+  const v = row[col.key];
+  if(v===undefined || v===null || v==='') return `<span class="muted">-</span>`;
+  return esc(v);
+}
+
+function renderTable(mod){
+  const ui = uiFor(mod.key);
+  const visibleCols = ensureVisibleColumns(mod);
+  const cols = mod.columns.filter(c => visibleCols[c.key] !== false);
+  const rows = filteredSortedRows(mod);
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / ui.pageSize));
+  if(ui.page > totalPages) ui.page = totalPages;
+  const startIdx = (ui.page-1)*ui.pageSize;
+  const pageRows = rows.slice(startIdx, startIdx+ui.pageSize);
+
+  const theadHtml = cols.map(col=>{
+    if(col.key==='status' || col.key==='description' || col.key==='stt'){
+      return `<th ${col.width?`style="width:${col.width}"`:''}>${esc(col.label)}</th>`;
+    }
+    if(col.sortable){
+      const sorted = ui.sortKey===col.key;
+      return `<th class="sortable ${sorted?'sorted':''}" data-sort="${col.key}">
+        <span class="th-inner">${esc(col.label)} ${ICONS.sortIcon}</span>
+      </th>`;
+    }
+    return `<th>${esc(col.label)}</th>`;
+  }).join('') + `<th>Hành động</th>`;
+
+  const tbodyHtml = pageRows.length ? pageRows.map((row,i)=>{
+    const tds = cols.map(col=>`<td class="${col.key==='description'?'':''}">${cellValue(mod,row,col,startIdx+i+1)}</td>`).join('');
+    return `<tr data-row="${row.id}">
+      ${tds}
+      <td class="actions">
+        <button class="row-icon-btn" data-edit="${row.id}" title="Sửa">${ICONS.edit}</button>
+        <button class="row-icon-btn danger" data-del="${row.id}" title="Xóa">${ICONS.trash}</button>
+      </td>
+    </tr>`;
+  }).join('') : '';
+
+  const emptyHtml = pageRows.length ? '' : `
+    <tr><td colspan="${cols.length+1}">
+      <div class="empty-state">
+        ${ICONS.inbox}
+        <div class="t">Không tìm thấy dữ liệu</div>
+        <div class="s">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</div>
+      </div>
+    </td></tr>`;
+
+  // pagination buttons (with ellipsis for many pages)
+  let pageBtns = '';
+  const addPageBtn = p => `<button class="page-num ${p===ui.page?'active':''}" data-page="${p}">${p}</button>`;
+  if(totalPages <= 7){
+    for(let p=1;p<=totalPages;p++) pageBtns += addPageBtn(p);
+  } else {
+    pageBtns += addPageBtn(1);
+    if(ui.page > 3) pageBtns += `<span class="page-ellipsis">...</span>`;
+    for(let p=Math.max(2,ui.page-1); p<=Math.min(totalPages-1,ui.page+1); p++) pageBtns += addPageBtn(p);
+    if(ui.page < totalPages-2) pageBtns += `<span class="page-ellipsis">...</span>`;
+    pageBtns += addPageBtn(totalPages);
+  }
+
+  return `
+    <div class="filters-row">
+      <div class="search-box">
+        ${ICONS.search}
+        <input type="text" id="searchInput" placeholder="${esc(mod.searchPlaceholder)}" value="${esc(ui.search)}" />
+      </div>
+      <select class="select-box" id="statusFilter">
+        <option value="all" ${ui.status==='all'?'selected':''}>Tất cả trạng thái</option>
+        <option value="active" ${ui.status==='active'?'selected':''}>Đang hoạt động</option>
+        <option value="inactive" ${ui.status==='inactive'?'selected':''}>Ngừng hoạt động</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn btn-outline" id="columnsBtn">${ICONS.sliders}Columns${ICONS.chevronDown}</button>
+      <button class="btn btn-outline" id="exportBtn">${ICONS.download}Xuất File</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>${theadHtml}</tr></thead>
+        <tbody>${tbodyHtml}${emptyHtml}</tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <div class="footer-left">Tổng danh sách : ${total}</div>
+      <div class="footer-right">
+        <span>Hiển thị
+          <select class="page-size-select" id="pageSizeSelect">
+            ${[10,20,50].map(n=>`<option value="${n}" ${ui.pageSize===n?'selected':''}>${n} bản ghi</option>`).join('')}
+          </select>
+        </span>
+        <span>trong số ${total}</span>
+        <div class="pagination">
+          <button class="page-btn" id="prevPage" ${ui.page<=1?'disabled':''}>${ICONS.chevronLeft}</button>
+          ${pageBtns}
+          <button class="page-btn" id="nextPage" ${ui.page>=totalPages?'disabled':''}>${ICONS.chevronRight}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- Main content render ---------------- */
+
+function renderContent(){
+  closeColumnsMenu();
+  const mod = MODULES[state.currentModule];
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="card">
+      <div class="breadcrumb">Quản lý danh mục <span>›</span> <span class="current">${esc(mod.title)}</span></div>
+      <div class="toolbar-top">
+        <div>
+          <h1 class="page-heading">${esc(mod.title)}</h1>
+          <p class="page-sub">${esc(mod.sub)}</p>
+        </div>
+        <button class="btn btn-primary" id="addBtn">${ICONS.plus}${esc(mod.addLabel)}</button>
+      </div>
+      <div id="tableWrap">${renderTable(mod)}</div>
+    </div>
+  `;
+  bindContentEvents(mod);
+}
+
+function bindContentEvents(mod){
+  const ui = uiFor(mod.key);
+
+  document.getElementById('addBtn').addEventListener('click', ()=> openFormModal(mod, null));
+
+  const rerenderTable = ()=>{
+    document.getElementById('tableWrap').innerHTML = renderTable(mod);
+    bindTableEvents(mod);
+  };
+
+  bindTableEvents(mod);
+
+  function bindTableEvents(){
+    const searchInput = document.getElementById('searchInput');
+    let debounceT;
+    searchInput.addEventListener('input', e=>{
+      clearTimeout(debounceT);
+      const val = e.target.value;
+      debounceT = setTimeout(()=>{ ui.search = val; ui.page = 1; rerenderTable(); }, 220);
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', e=>{
+      ui.status = e.target.value; ui.page = 1; rerenderTable();
+    });
+
+    document.getElementById('pageSizeSelect').addEventListener('change', e=>{
+      ui.pageSize = Number(e.target.value); ui.page = 1; rerenderTable();
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      exportCsv(mod);
+    });
+
+    document.getElementById('columnsBtn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openColumnsMenu(mod, e.currentTarget, rerenderTable);
+    });
+
+    document.querySelectorAll('th.sortable').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.dataset.sort;
+        if(ui.sortKey===key){ ui.sortDir = ui.sortDir==='asc' ? 'desc' : 'asc'; }
+        else { ui.sortKey = key; ui.sortDir = 'asc'; }
+        rerenderTable();
+      });
+    });
+
+    const prev = document.getElementById('prevPage');
+    const next = document.getElementById('nextPage');
+    if(prev) prev.addEventListener('click', ()=>{ if(ui.page>1){ ui.page--; rerenderTable(); } });
+    if(next) next.addEventListener('click', ()=>{ ui.page++; rerenderTable(); });
+    document.querySelectorAll('[data-page]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ ui.page = Number(btn.dataset.page); rerenderTable(); });
+    });
+
+    document.querySelectorAll('[data-edit]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = mod.data.find(r=>r.id===btn.dataset.edit);
+        openFormModal(mod, row);
+      });
+    });
+    document.querySelectorAll('[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = mod.data.find(r=>r.id===btn.dataset.del);
+        openConfirmDelete(mod, row, rerenderTable);
+      });
+    });
+  }
+}
+
+/* ---------------- Columns visibility menu ---------------- */
+
+function closeColumnsMenu(){
+  const existing = document.querySelector('.columns-menu');
+  if(existing) existing.remove();
+  document.removeEventListener('click', closeColumnsMenu);
+}
+
+function openColumnsMenu(mod, btnEl, onChange){
+  closeColumnsMenu();
+  const visibleCols = ensureVisibleColumns(mod);
+  const rect = btnEl.getBoundingClientRect();
+
+  const menu = document.createElement('div');
+  menu.className = 'columns-menu';
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 236) + 'px';
+
+  const visibleCount = mod.columns.filter(c => visibleCols[c.key] !== false).length;
+
+  menu.innerHTML = `
+    <div class="cm-title">Hiển thị cột</div>
+    ${mod.columns.map(col => `
+      <label>
+        <input type="checkbox" data-col="${col.key}" ${visibleCols[col.key]!==false?'checked':''}
+          ${visibleCount<=1 && visibleCols[col.key]!==false ? 'disabled' : ''} />
+        ${esc(col.label)}
+      </label>
+    `).join('')}
+    <div class="cm-divider"></div>
+    <button type="button" class="cm-reset" id="cmResetBtn">Hiển thị tất cả</button>
+  `;
+  document.body.appendChild(menu);
+  requestAnimationFrame(()=> menu.classList.add('open'));
+
+  menu.addEventListener('click', e => e.stopPropagation());
+
+  menu.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      visibleCols[cb.dataset.col] = cb.checked;
+      onChange();
+      const freshBtn = document.getElementById('columnsBtn');
+      if(freshBtn) openColumnsMenu(mod, freshBtn, onChange);
+    });
+  });
+  menu.querySelector('#cmResetBtn').addEventListener('click', ()=>{
+    mod.columns.forEach(c => { visibleCols[c.key] = true; });
+    onChange();
+    const freshBtn = document.getElementById('columnsBtn');
+    if(freshBtn) openColumnsMenu(mod, freshBtn, onChange);
+  });
+
+  setTimeout(()=> document.addEventListener('click', closeColumnsMenu), 0);
+}
+
+function exportCsv(mod){
+  const rows = filteredSortedRows(mod);
+  const cols = mod.columns.filter(c=>c.key!=='stt' && c.key!=='status');
+  const header = [...cols.map(c=>c.label), 'Trạng thái'];
+  const lines = [header.join(',')];
+  rows.forEach(r=>{
+    const line = [...cols.map(c=> `"${String(r[c.key]||'').replace(/"/g,'""')}"`),
+      r.status==='active' ? 'Đang hoạt động' : 'Ngừng hoạt động'];
+    lines.push(line.join(','));
+  });
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${mod.key}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('success', `Đã xuất file ${mod.key}.csv`);
+}
+
+/* ---------------- Add/Edit modal ---------------- */
+
+function openFormModal(mod, existingRow){
+  const isEdit = !!existingRow;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>${isEdit ? esc(mod.editModalTitle) : esc(mod.addModalTitle)}</h3>
+        <button class="modal-close" id="closeModal">${ICONS.close}</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        ${mod.fields.map(f=>fieldHtml(f, existingRow)).join('')}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="cancelBtn">Hủy</button>
+        <button class="btn btn-primary" id="saveBtn">Lưu</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=> overlay.classList.add('open'));
+
+  const close = ()=>{
+    overlay.classList.remove('open');
+    setTimeout(()=> overlay.remove(), 150);
+  };
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  overlay.querySelector('#closeModal').addEventListener('click', close);
+  overlay.querySelector('#cancelBtn').addEventListener('click', close);
+
+  overlay.querySelector('#saveBtn').addEventListener('click', ()=>{
+    const values = {};
+    let hasError = false;
+    mod.fields.forEach(f=>{
+      const el = overlay.querySelector(`[name="${f.key}"]`);
+      const fieldWrap = el.closest('.field');
+      let val = el.value.trim();
+      if(f.required && !val){
+        fieldWrap.classList.add('has-error');
+        hasError = true;
+      } else {
+        fieldWrap.classList.remove('has-error');
+      }
+      values[f.key] = f.type==='number' ? (val===''? '' : Number(val)) : val;
+    });
+    if(hasError) return;
+
+    if(isEdit){
+      Object.assign(existingRow, values);
+      showToast('success', 'Đã lưu thay đổi');
+    } else {
+      const newRow = {id:uid(), status:'active', description:'', ...values};
+      mod.data.unshift(newRow);
+      showToast('success', 'Đã thêm mới thành công');
+    }
+    close();
+    renderContent();
+  });
+}
+
+function fieldHtml(f, existingRow){
+  const val = existingRow ? (existingRow[f.key] ?? '') : '';
+  const reqStar = f.required ? '<span class="req">*</span>' : '';
+  if(f.type==='select'){
+    const cur = existingRow ? existingRow.status : 'active';
+    return `
+      <div class="field">
+        <label>${esc(f.label)}${reqStar}</label>
+        <select name="${f.key}">
+          <option value="active" ${cur==='active'?'selected':''}>Đang hoạt động</option>
+          <option value="inactive" ${cur==='inactive'?'selected':''}>Ngừng hoạt động</option>
+        </select>
+      </div>`;
+  }
+  if(f.type==='textarea'){
+    return `
+      <div class="field">
+        <label>${esc(f.label)}${reqStar}</label>
+        <textarea name="${f.key}" placeholder="${esc(f.placeholder||'')}">${esc(val)}</textarea>
+      </div>`;
+  }
+  if(f.type==='number'){
+    return `
+      <div class="field">
+        <label>${esc(f.label)}${reqStar}</label>
+        <input type="number" name="${f.key}" placeholder="${esc(f.placeholder||'')}" value="${esc(val)}" />
+        <div class="err">Trường này là bắt buộc</div>
+      </div>`;
+  }
+  return `
+    <div class="field">
+      <label>${esc(f.label)}${reqStar}</label>
+      <input type="text" name="${f.key}" placeholder="${esc(f.placeholder||'')}" value="${esc(val)}" />
+      <div class="err">Trường này là bắt buộc</div>
+    </div>`;
+}
+
+/* ---------------- Delete confirm ---------------- */
+
+function openConfirmDelete(mod, row, onDone){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay confirm-modal';
+  const labelVal = row.name || row.value || row.code;
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Xóa bản ghi</h3>
+        <button class="modal-close" id="closeModal">${ICONS.close}</button>
+      </div>
+      <div class="confirm-body">
+        <div class="confirm-icon">${ICONS.alert}</div>
+        <div class="confirm-text">
+          <div class="t">Bạn có chắc chắn muốn xóa "${esc(labelVal)}"?</div>
+          <div class="s">Hành động này không thể hoàn tác.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="cancelBtn">Hủy</button>
+        <button class="btn" id="confirmDelBtn" style="background:var(--danger); color:#fff;">Xóa</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(()=> overlay.classList.add('open'));
+  const close = ()=>{ overlay.classList.remove('open'); setTimeout(()=>overlay.remove(),150); };
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+  overlay.querySelector('#closeModal').addEventListener('click', close);
+  overlay.querySelector('#cancelBtn').addEventListener('click', close);
+  overlay.querySelector('#confirmDelBtn').addEventListener('click', ()=>{
+    const idx = mod.data.findIndex(r=>r.id===row.id);
+    if(idx>-1) mod.data.splice(idx,1);
+    close();
+    onDone();
+    showToast('danger', 'Đã xóa bản ghi');
+  });
+}
+
+/* ---------------- Toast ---------------- */
+
+function showToast(type, msg){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `${type==='success'?ICONS.check:ICONS.alert}<span>${esc(msg)}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{
+    el.style.opacity='0'; el.style.transform='translateY(-6px)'; el.style.transition='all .2s ease';
+    setTimeout(()=> el.remove(), 200);
+  }, 2600);
+}
+
+/* ---------------- Init ---------------- */
+
+renderSidebar();
+renderContent();
+
+</script>
+</body>
+</html>
