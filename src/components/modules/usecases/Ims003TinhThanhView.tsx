@@ -162,17 +162,17 @@ export const Ims003TinhThanhView: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
         <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
 
         {/* Toolbar trên: tiêu đề trang + nút Thêm mới. */}
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Tỉnh thành</h1>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <h1 className="text-2xl font-bold text-[#292929]">Tỉnh thành</h1>
+            <p className="mt-1 text-[13px] text-[#525252]">
               Quản lý danh sách và tạo mới tỉnh thành
-              <span className="ml-2 rounded-sm bg-hnx-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-hnx-800">
+              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
                 {UC.ucCode}
               </span>
             </p>
@@ -190,7 +190,7 @@ export const Ims003TinhThanhView: React.FC = () => {
 
         {/* Hàng bộ lọc: ô tìm kiếm + trạng thái + Tìm kiếm + Làm mới. */}
         <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 sm:max-w-85">
+          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:max-w-85">
             <Search className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               type="text"
@@ -201,7 +201,7 @@ export const Ims003TinhThanhView: React.FC = () => {
               }}
               placeholder="Tìm kiếm Mã, Tên tỉnh thành..."
               aria-label="Từ khóa tìm kiếm"
-              className="w-full border-none bg-transparent text-[13px] text-slate-900 outline-none placeholder:text-slate-400"
+              className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
             />
           </div>
 
@@ -293,7 +293,7 @@ export const Ims003TinhThanhView: React.FC = () => {
                 />
               ) : (
                 list.pageRows.map((row, idx) => (
-                  <tr key={row.id} className="hover:bg-hnx-50/60">
+                  <tr key={row.id} className="hover:bg-[#F8FAFC]">
                     <td className={`${TD_CLASS} text-slate-500`}>{list.startIdx + idx + 1}</td>
 
                     <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>
@@ -347,7 +347,7 @@ export const Ims003TinhThanhView: React.FC = () => {
                         onClick={() => setDeleteTarget(row)}
                         title={`Xóa ${row.provinceNameVn}`}
                         aria-label={`Xóa ${row.provinceNameVn}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-[#802423]/10 hover:text-[#802423]"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

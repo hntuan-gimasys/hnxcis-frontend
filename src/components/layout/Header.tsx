@@ -17,6 +17,7 @@ import {
 import { UserAccount, NotificationItem } from '../../types/hnx';
 import { getRoleLabel } from '../../data/roleCatalog';
 import hnxLogo from '../../assets/hnx-logo.png';
+import hnxLogoDark from '../../assets/hnx-logo-dark.png';
 import { PORTAL_LABEL, type Portal } from '../../lib/portalRoute';
 
 interface HeaderProps {
@@ -51,11 +52,87 @@ export const Header: React.FC<HeaderProps> = ({
    */
   const isAuthenticatedPortal = activePortal === 'internal';
 
+  /**
+   * Header SANG cho /ims theo bang mau Figma; ICDS va Corporate News giu nguyen
+   * header toi.
+   *
+   * Gom toan bo khac biet vao mot bang thay vi rac dieu kien khap JSX: nhanh
+   * `else` ben duoi la chuoi class cu nguyen van, nen doc la thay ngay hai cong
+   * kia khong doi mot ky tu nao.
+   *
+   * Logo phai DOI ANH, khong chi doi mau nen: `hnx-logo.png` la chu TRANG tren
+   * nen trong suot, dat len header trang la mat han chu. `hnx-logo-dark.png` la
+   * cung anh do da to mau, dung duoc tren nen sang.
+   */
+  const isInternal = activePortal === 'internal';
+
+  const hd = isInternal
+    ? {
+        logoSrc: hnxLogoDark,
+        shell: 'bg-white text-[#292929] border-b border-slate-200 sticky top-0 z-40 shadow-sm',
+        menuBtn:
+          'md:hidden p-2 -ml-2 rounded-sm text-[#525252] hover:text-[#292929] hover:bg-slate-100',
+        chip:
+          'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#E6F4EA] border border-[#008A4B]/30',
+        chipIcon: 'h-3.5 w-3.5 text-[#008A4B]',
+        chipText: 'text-xs font-bold uppercase tracking-wider text-[#00733E]',
+        langBtn:
+          'inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-sm bg-white hover:bg-slate-100 text-xs font-bold text-[#292929] border border-slate-300 uppercase tracking-widest',
+        langIcon: 'h-3.5 w-3.5 text-[#008A4B]',
+        bellBtn:
+          'p-2 rounded-sm bg-white hover:bg-slate-100 text-[#525252] hover:text-[#292929] relative border border-slate-300',
+        unread:
+          'absolute -top-1 -right-1 bg-[#008A4B] text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse',
+        userChip:
+          'flex items-center space-x-2 px-3 py-1.5 rounded-sm bg-slate-50 border border-slate-300 text-xs',
+        userAvatar:
+          'w-6 h-6 rounded-sm bg-[#E6F4EA] border border-[#008A4B]/40 flex items-center justify-center shrink-0',
+        userAvatarIcon: 'h-3.5 w-3.5 text-[#008A4B]',
+        userName: 'font-semibold text-[#292929] truncate max-w-[130px]',
+        userRole: 'text-[10px] text-[#525252] truncate max-w-[130px]',
+        logoutBtn:
+          'p-2 rounded-sm bg-white hover:bg-[#802423]/10 text-[#525252] hover:text-[#802423] border border-slate-300',
+        mobileBar:
+          'flex md:hidden items-center justify-center gap-2 py-2 border-t border-slate-200',
+        mobileIcon: 'h-3 w-3 text-[#008A4B]',
+        mobileText: 'text-[11px] font-bold uppercase tracking-wider text-[#00733E]',
+      }
+    : {
+        logoSrc: hnxLogo,
+        shell: 'bg-hnx-header text-white border-b border-emerald-900/60 sticky top-0 z-40 shadow-md',
+        menuBtn:
+          'md:hidden p-2 -ml-2 rounded-sm text-emerald-300 hover:text-white hover:bg-emerald-900/60',
+        chip:
+          'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-950/70 border border-emerald-800/70',
+        chipIcon: 'h-3.5 w-3.5 text-emerald-300',
+        chipText: 'text-xs font-bold uppercase tracking-wider text-emerald-100',
+        langBtn:
+          'inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-sm bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-100 border border-emerald-800 uppercase tracking-widest',
+        langIcon: 'h-3.5 w-3.5 text-[#6FAE55]',
+        bellBtn:
+          'p-2 rounded-sm bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white relative border border-slate-700',
+        unread:
+          'absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse',
+        userChip:
+          'flex items-center space-x-2 px-3 py-1.5 rounded-sm bg-slate-800 border border-slate-700 text-xs',
+        userAvatar:
+          'w-6 h-6 rounded-sm bg-indigo-600/30 border border-indigo-500 flex items-center justify-center shrink-0',
+        userAvatarIcon: 'h-3.5 w-3.5 text-indigo-400',
+        userName: 'font-semibold text-white truncate max-w-[130px]',
+        userRole: 'text-[10px] text-slate-400 truncate max-w-[130px]',
+        logoutBtn:
+          'p-2 rounded-sm bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-white border border-slate-700',
+        mobileBar:
+          'flex md:hidden items-center justify-center gap-2 py-2 border-t border-slate-800',
+        mobileIcon: 'h-3 w-3 text-emerald-300',
+        mobileText: 'text-[11px] font-bold uppercase tracking-wider text-emerald-100',
+      };
+
   const PortalIcon =
     activePortal === 'internal' ? Building : activePortal === 'corporate' ? Building2 : Newspaper;
 
   return (
-    <header className="bg-hnx-header text-white border-b border-emerald-900/60 sticky top-0 z-40 shadow-md">
+    <header className={hd.shell}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Geometric Balance Logo & Title */}
@@ -64,7 +141,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onOpenMenu}
                 aria-label="Mở menu chức năng"
-                className="md:hidden p-2 -ml-2 rounded-sm text-emerald-300 hover:text-white hover:bg-emerald-900/60"
+                className={hd.menuBtn}
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -78,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
               "IMS/ICDS + mô tả" trước đây bị bỏ đi để tránh lặp.
             */}
             <img
-              src={hnxLogo}
+              src={hd.logoSrc}
               alt="Sở Giao dịch Chứng khoán Hà Nội — Hanoi Stock Exchange"
               /* Logo tỉ lệ 5:1, nên chiều cao quyết định chiều rộng: 24px→121px,
                  32px→162px, 36px→182px. Trên mobile còn nút menu bên trái và 3 nút
@@ -94,9 +171,9 @@ export const Header: React.FC<HeaderProps> = ({
             ba tab của cùng một trang, nên header chỉ cho biết đang ở đâu, không
             còn là chỗ nhảy qua lại. Ai cần cổng khác thì mở đúng địa chỉ của nó.
           */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-950/70 border border-emerald-800/70">
-            <PortalIcon className="h-3.5 w-3.5 text-emerald-300" />
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-100">
+          <div className={hd.chip}>
+            <PortalIcon className={hd.chipIcon} />
+            <span className={hd.chipText}>
               {PORTAL_LABEL[activePortal]}
             </span>
           </div>
@@ -106,10 +183,10 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Language Switcher */}
             <button
               onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-              className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-sm bg-emerald-950 hover:bg-emerald-900 text-xs font-bold text-emerald-100 border border-emerald-800 uppercase tracking-widest"
+              className={hd.langBtn}
               title="Chuyển đổi ngôn ngữ VI / EN"
             >
-              <Globe className="h-3.5 w-3.5 text-[#6FAE55]" />
+              <Globe className={hd.langIcon} />
               <span>{lang}</span>
             </button>
 
@@ -117,11 +194,11 @@ export const Header: React.FC<HeaderProps> = ({
             <div className={`relative ${isAuthenticatedPortal ? '' : 'hidden'}`}>
               <button
                 onClick={() => setShowNotifs(!showNotifs)}
-                className="p-2 rounded-sm bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white relative border border-slate-700"
+                className={hd.bellBtn}
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
+                  <span className={hd.unread}>
                     {unreadCount}
                   </span>
                 )}
@@ -194,15 +271,15 @@ export const Header: React.FC<HeaderProps> = ({
               thật vận hành.
             */}
             {isAuthenticatedPortal && (
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-sm bg-slate-800 border border-slate-700 text-xs">
-                <div className="w-6 h-6 rounded-sm bg-indigo-600/30 border border-indigo-500 flex items-center justify-center shrink-0">
-                  <User className="h-3.5 w-3.5 text-indigo-400" />
+              <div className={hd.userChip}>
+                <div className={hd.userAvatar}>
+                  <User className={hd.userAvatarIcon} />
                 </div>
                 <div className="text-left hidden sm:block">
-                  <div className="font-semibold text-white truncate max-w-[130px]">
+                  <div className={hd.userName}>
                     {currentUser.fullName}
                   </div>
-                  <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
+                  <div className={hd.userRole}>
                     {getRoleLabel(currentUser.roleCode)}
                   </div>
                 </div>
@@ -213,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onLogout}
                 title="Đăng xuất khỏi cổng nội bộ"
-                className="p-2 rounded-sm bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-white border border-slate-700"
+                className={hd.logoutBtn}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -222,9 +299,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Tên cổng trên mobile — thay cho thanh chuyển cổng trước đây. */}
-        <div className="flex md:hidden items-center justify-center gap-2 py-2 border-t border-slate-800">
-          <PortalIcon className="h-3 w-3 text-emerald-300" />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-100">
+        <div className={hd.mobileBar}>
+          <PortalIcon className={hd.mobileIcon} />
+          <span className={hd.mobileText}>
             {PORTAL_LABEL[activePortal]}
           </span>
         </div>

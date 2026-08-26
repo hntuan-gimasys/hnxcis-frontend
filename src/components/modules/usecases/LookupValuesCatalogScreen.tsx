@@ -214,17 +214,17 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
 
   return (
     <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
         <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
 
         {/* Toolbar trên: tiêu đề trang + nút Thêm. */}
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">{config.heading}</h1>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <h1 className="text-2xl font-bold text-[#292929]">{config.heading}</h1>
+            <p className="mt-1 text-[13px] text-[#525252]">
               {config.subtitle}
-              <span className="ml-2 rounded-sm bg-hnx-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-hnx-800">
+              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
                 {UC.ucCode}
               </span>
               {/*
@@ -232,7 +232,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
                 LOOKUP_VALUES với nhiều nhóm khác, nên biết mình đang xem nhóm nào
                 là thông tin cần thiết chứ không phải chi tiết kỹ thuật.
               */}
-              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-slate-600">
+              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
                 LOV_GROUP = {config.lovGroup}
               </span>
             </p>
@@ -250,7 +250,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
 
         {/* Hàng bộ lọc: từ khóa (CODE/VALUE/DESCRIPTION) + trạng thái + hai nút. */}
         <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 sm:max-w-85">
+          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:max-w-85">
             <Search className="h-4 w-4 shrink-0 text-slate-400" />
             <input
               type="text"
@@ -261,7 +261,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
               }}
               placeholder={config.searchPlaceholder}
               aria-label="Từ khóa tìm kiếm"
-              className="w-full border-none bg-transparent text-[13px] text-slate-900 outline-none placeholder:text-slate-400"
+              className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
             />
           </div>
 
@@ -342,7 +342,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
                   const parentLabel = parentLabelOf(row.lookupParentId);
 
                   return (
-                    <tr key={row.id} className="hover:bg-hnx-50/60">
+                    <tr key={row.id} className="hover:bg-[#F8FAFC]">
                       <td className={`${TD_CLASS} text-center text-slate-500`}>
                         {list.startIdx + idx + 1}
                       </td>
@@ -383,7 +383,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
                           onClick={() => setDeleteTarget(row)}
                           title={`Xóa ${row.value}`}
                           aria-label={`Xóa ${row.value}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-[#802423]/10 hover:text-[#802423]"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

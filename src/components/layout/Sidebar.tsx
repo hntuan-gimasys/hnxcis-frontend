@@ -202,8 +202,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
    * Trước đây sidebar để `hidden md:block` nên trên điện thoại không có menu
    * module nào — lãnh đạo P.TTTT không thể vào hàng đợi duyệt tin bằng điện thoại.
    */
+  /**
+   * Nen sidebar tach theo cong.
+   *
+   * /ims doi sang xanh ngoc #008A4B theo bang mau Figma. ICDS PHAI giu nguyen
+   * `bg-hnx-sidebar` + `text-emerald-100`: `asideClass` la chuoi dung chung cho
+   * ca hai nhanh render, doi thang o day la doi luon mau sidebar cua /icds.
+   */
+  const asideSkin =
+    activePortal === 'internal'
+      ? 'bg-[#008A4B] text-white border-r border-[#004D28]'
+      : 'bg-hnx-sidebar text-emerald-100 border-r border-emerald-900/60';
+
   const asideClass = [
-    'w-64 bg-hnx-sidebar text-emerald-100 border-r border-emerald-900/60 shrink-0',
+    `w-64 ${asideSkin} shrink-0`,
     'fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200',
     mobileOpen ? 'translate-x-0' : '-translate-x-full',
     'md:static md:translate-x-0 md:z-auto md:overflow-visible',
@@ -320,9 +332,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
     {backdrop}
     <aside className={asideClass}>
-      <div className="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
+      <div className="p-4 border-b border-[#004D28] flex items-start justify-between gap-2">
         <div>
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
             IMS — Quản lý &amp; Khai thác thông tin
           </div>
           <div className="text-sm font-bold text-white mt-1">Cổng Nội bộ HNX</div>
@@ -330,7 +342,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onCloseMobile}
           aria-label="Đóng menu"
-          className="md:hidden p-1 text-slate-400 hover:text-white shrink-0"
+          className="md:hidden p-1 text-white/70 hover:text-white shrink-0"
         >
           <X className="h-4 w-4" />
         </button>
@@ -348,8 +360,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           copy link gửi cho người khác vẫn mở đúng màn hình.
         */}
         <div className="space-y-0.5">
-          <div className="flex select-none items-center gap-2 rounded-lg px-2.5 py-2.5 text-[13px] font-medium text-white/90">
-            <Settings className="h-4 w-4 shrink-0 opacity-90" />
+          <div className="flex select-none items-center gap-2 rounded-lg px-2.5 py-2.5 text-[13px] font-semibold text-white">
+            <Settings className="h-4 w-4 shrink-0 text-white" />
             <span>Quản lý hệ thống</span>
             <ChevronDown className="ml-auto h-3.5 w-3.5 opacity-90" />
           </div>
@@ -358,7 +370,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={() => setCatalogOpen((open) => !open)}
             aria-expanded={catalogOpen}
-            className="flex w-full items-center gap-2 rounded-lg py-2 pr-2.5 pl-5 text-[13px] font-medium text-white/95 hover:bg-white/[0.06]"
+            className="flex w-full items-center gap-2 rounded-lg py-2 pr-2.5 pl-5 text-[13px] font-medium text-white hover:bg-[#004D28]/40"
           >
             <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-85" />
             <span>Quản lý Danh mục</span>
@@ -378,14 +390,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={uc.code}
                     onClick={() => pickModule(uc.code)}
                     title={`${uc.ucCode} — ${uc.label}`}
+                    /*
+                      Mục đang chọn dùng Button Primary #375E27 của bảng màu Figma
+                      thay cho lớp trắng mờ trước đây; `active:` là màu Pressed
+                      #24341E. Chữ trắng trên #375E27 cho tỉ lệ tương phản ~8,3:1
+                      nên vẫn đọc tốt trên nền sidebar tối.
+                    */
                     className={`my-px flex w-full items-center gap-2.5 rounded-lg py-2 pr-2.5 pl-5 text-left text-[13px] transition-colors ${
                       activeModule === uc.code
-                        ? 'bg-white/[0.16] font-medium text-white'
-                        : 'text-white/80 hover:bg-white/[0.08] hover:text-white'
+                        ? 'bg-[#004D28] font-semibold text-white'
+                        : 'text-white hover:bg-[#004D28]/40'
                     }`}
                   >
                     <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-70" />
-                    <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                    {/*
+                      Icon dùng Primary Accent #54A72F khi mục chưa được chọn — nó
+                      nổi rõ trên nền sidebar tối. Mục đang chọn đã có nền #375E27
+                      nên icon chuyển sang trắng, vì #54A72F trên #375E27 gần như
+                      không phân biệt được.
+                    */}
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-white" />
                     <span className="leading-tight">{uc.label}</span>
                   </button>
                 );

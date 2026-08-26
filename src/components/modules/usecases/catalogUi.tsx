@@ -29,6 +29,32 @@ import {
  * của từng danh mục nằm ở màn hình tương ứng.
  */
 
+/*
+ * BẢNG MÀU — Figma chuẩn, áp riêng cho /ims.
+ *
+ *   Primary          #008A4B  nút chính, số trang đang chọn, ring khi focus
+ *   Primary hover    #00733E  hover của nút chính
+ *   Sidebar          #008A4B  nền sidebar /ims (đặt ở Sidebar.tsx)
+ *   Sidebar active   #004D28  khối bo góc của mục menu đang chọn
+ *   Success          #E6F4EA nền · #1E7A42 chữ/dot — badge "Đang hoạt động"
+ *   Warning          #FDF1E0 nền · #B9691B chữ/dot — badge "Ngừng hoạt động"
+ *   Danger           #802423  nút Xóa, viền trường lỗi, chữ lỗi, icon toast lỗi
+ *   Text Primary     #292929  chữ chính, nhãn, ô nhập, tiêu đề bảng
+ *   Text Secondary   #525252  chữ phụ, chân bảng phân trang
+ *   Canvas           #EBEBEB  nền trang (đặt ở App.tsx)
+ *
+ * Dải xanh olive cũ (`hnx-*` trong `index.css`: #123a0a → #6fae55) KHÔNG còn
+ * dùng ở /ims. Không sửa `index.css` vì 23 file module khác đang dựa vào nó —
+ * đổi ở đó là đổi màu cả /icds. Vì vậy hex viết thẳng vào className; Tailwind
+ * quét chuỗi trong mã nguồn nên không thể đưa vào hằng số rồi nội suy.
+ *
+ * Success/Warning giờ có mã nền RIÊNG (#E6F4EA / #FDF1E0) thay vì lấy màu chữ ở
+ * 10% như trước. Đo thực tế: #1E7A42 trên #E6F4EA đạt 4,72:1 — qua chuẩn WCAG AA
+ * cho chữ nhỏ, so với 2,25:1 của cặp màu cũ. Nhưng #B9691B trên #FDF1E0 chỉ đạt
+ * 3,69:1, CHƯA đạt AA cho chữ 12px; đây là mã màu do thiết kế chốt nên giữ nguyên,
+ * đã báo lại để cân nhắc làm đậm màu chữ badge "Ngừng hoạt động".
+ */
+
 /* ------------------------------------------------------------------ input */
 
 /**
@@ -38,17 +64,17 @@ import {
  * inputMode...) mà form nào cũng cần.
  */
 export const INPUT_CLASS =
-  'w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] text-slate-900 outline-none ' +
-  'focus:border-hnx-400 focus:ring-3 focus:ring-hnx-500/15';
+  'w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-[13px] text-[#292929] outline-none ' +
+  'focus:border-[#008A4B] focus:ring-3 focus:ring-[#008A4B]/20';
 
 export const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer pr-8`;
 
 export const TEXTAREA_CLASS =
-  'w-full min-h-19 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 ' +
-  'outline-none resize-y focus:border-hnx-400 focus:ring-3 focus:ring-hnx-500/15';
+  'w-full min-h-19 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-[#292929] ' +
+  'outline-none resize-y focus:border-[#008A4B] focus:ring-3 focus:ring-[#008A4B]/20';
 
 /** Viền đỏ khi trường có lỗi (`.field.has-error` ở file mẫu). */
-export const ERROR_RING = 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/15';
+export const ERROR_RING = 'border-[#802423] focus:border-[#802423] focus:ring-[#802423]/15';
 
 /* ------------------------------------------------------------------ button */
 
@@ -56,9 +82,9 @@ export const BTN_BASE =
   'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-medium ' +
   'whitespace-nowrap border transition-colors disabled:opacity-40 disabled:cursor-default';
 
-export const BTN_PRIMARY = `${BTN_BASE} border-transparent bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs`;
-export const BTN_OUTLINE = `${BTN_BASE} border-slate-300 bg-white text-slate-900 hover:bg-slate-50`;
-export const BTN_DANGER = `${BTN_BASE} border-transparent bg-rose-600 text-white hover:bg-rose-700`;
+export const BTN_PRIMARY = `${BTN_BASE} border-transparent bg-[#008A4B] text-white hover:bg-[#00733E] shadow-xs`;
+export const BTN_OUTLINE = `${BTN_BASE} border-slate-300 bg-white text-[#292929] hover:bg-slate-50`;
+export const BTN_DANGER = `${BTN_BASE} border-transparent bg-[#802423] text-white hover:bg-[#802423]`;
 
 /* ------------------------------------------------------------------ badge */
 
@@ -73,10 +99,10 @@ export const BTN_DANGER = `${BTN_BASE} border-transparent bg-rose-600 text-white
 export const StatusPill: React.FC<{ active: boolean }> = ({ active }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-      active ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'
+      active ? 'bg-[#E6F4EA] text-[#1E7A42]' : 'bg-[#FDF1E0] text-[#B9691B]'
     }`}
   >
-    <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+    <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-[#1E7A42]' : 'bg-[#B9691B]'}`} />
     {active ? 'Đang hoạt động' : 'Ngừng hoạt động'}
   </span>
 );
@@ -84,9 +110,9 @@ export const StatusPill: React.FC<{ active: boolean }> = ({ active }) => (
 /* ------------------------------------------------------------------ table */
 
 export const TH_CLASS =
-  'px-3 py-2.5 text-left text-[13px] font-semibold text-slate-900 border-b border-slate-200 whitespace-nowrap';
+  'px-3 py-2.5 text-left text-[13px] font-semibold text-[#292929] border-b border-slate-200 whitespace-nowrap';
 
-export const TD_CLASS = 'px-3 py-3.5 text-sm text-slate-900 border-b border-slate-100 align-top';
+export const TD_CLASS = 'px-3 py-3.5 text-sm text-[#292929] border-b border-slate-100 align-top';
 
 export interface SortState {
   readonly key: string;
@@ -132,12 +158,12 @@ export const SortableTh: React.FC<SortableThProps> = ({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className="inline-flex cursor-pointer select-none items-center gap-1.5 hover:text-hnx-700"
+        className="inline-flex cursor-pointer select-none items-center gap-1.5 hover:text-[#008A4B]"
       >
         {label}
         {dir === null && <ArrowUpDown className="h-3.5 w-3.5 text-slate-400 opacity-60" />}
-        {dir === 'asc' && <ArrowUp className="h-3.5 w-3.5 text-slate-600" />}
-        {dir === 'desc' && <ArrowDown className="h-3.5 w-3.5 text-slate-600" />}
+        {dir === 'asc' && <ArrowUp className="h-3.5 w-3.5 text-[#008A4B]" />}
+        {dir === 'desc' && <ArrowDown className="h-3.5 w-3.5 text-[#008A4B]" />}
       </button>
     </th>
   );
@@ -152,7 +178,7 @@ export const EmptyRow: React.FC<{ colSpan: number; title: string; hint: string }
     <td colSpan={colSpan}>
       <div className="px-5 py-15 text-center text-slate-500">
         <Inbox className="mx-auto mb-2.5 h-10 w-10 opacity-50" />
-        <div className="mb-1 text-sm font-medium text-slate-600">{title}</div>
+        <div className="mb-1 text-sm font-medium text-[#525252]">{title}</div>
         <div className="text-[13px]">{hint}</div>
       </div>
     </td>
@@ -198,15 +224,15 @@ export const TablePager: React.FC<TablePagerProps> = ({
   onPageSize,
 }) => (
   <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3.5">
-    <div className="text-[13px] text-slate-600">Tổng danh sách : {total}</div>
+    <div className="text-[13px] text-[#525252]">Tổng danh sách : {total}</div>
 
-    <div className="flex items-center gap-3.5 text-[13px] text-slate-600">
+    <div className="flex items-center gap-3.5 text-[13px] text-[#525252]">
       <label className="flex items-center gap-2">
         Hiển thị
         <select
           value={pageSize}
           onChange={(e) => onPageSize(Number(e.target.value))}
-          className="h-8 cursor-pointer rounded-md border border-slate-300 bg-slate-100 px-2 text-[13px] text-slate-600"
+          className="h-8 cursor-pointer rounded-md border border-slate-300 bg-slate-100 px-2 text-[13px] text-[#525252]"
         >
           {[10, 20, 50].map((n) => (
             <option key={n} value={n}>
@@ -222,7 +248,7 @@ export const TablePager: React.FC<TablePagerProps> = ({
           onClick={() => onPage(page - 1)}
           disabled={page <= 1}
           aria-label="Trang trước"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#525252] hover:bg-slate-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -240,8 +266,8 @@ export const TablePager: React.FC<TablePagerProps> = ({
               aria-current={item === page ? 'page' : undefined}
               className={`h-7 min-w-7 rounded-md px-1.5 text-[13px] ${
                 item === page
-                  ? 'bg-indigo-600 font-semibold text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-[#008A4B] font-semibold text-white'
+                  : 'bg-slate-100 text-[#525252] hover:bg-slate-200'
               }`}
             >
               {item}
@@ -254,7 +280,7 @@ export const TablePager: React.FC<TablePagerProps> = ({
           onClick={() => onPage(page + 1)}
           disabled={page >= totalPages}
           aria-label="Trang sau"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#525252] hover:bg-slate-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -307,12 +333,12 @@ export const ModalShell: React.FC<ModalShellProps> = ({
         }`}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          <h3 className="text-base font-semibold text-[#292929]">{title}</h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#292929]"
           >
             <X className="h-4 w-4" />
           </button>
@@ -356,11 +382,11 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
     }
   >
     <div className="flex gap-3.5 px-5 pt-5 pb-1.5">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#802423]/10 text-[#802423]">
         <AlertTriangle className="h-5 w-5" />
       </div>
       <div>
-        <div className="mb-1 text-sm font-semibold text-slate-900">
+        <div className="mb-1 text-sm font-semibold text-[#292929]">
           Bạn có chắc chắn muốn xóa “{recordLabel}”?
         </div>
         <div className="text-[13px] text-slate-500">{note}</div>
@@ -387,13 +413,13 @@ export const FormField: React.FC<FormFieldProps> = ({
   children,
 }) => (
   <div>
-    <label className="mb-1.5 block text-[13px] font-medium text-slate-900">
+    <label className="mb-1.5 block text-[13px] font-medium text-[#292929]">
       {label}
-      {required && <span className="ml-0.5 text-rose-600">*</span>}
+      {required && <span className="ml-0.5 text-[#802423]">*</span>}
     </label>
     {children}
     {error ? (
-      <p className="mt-1 text-xs text-rose-600">{error}</p>
+      <p className="mt-1 text-xs text-[#802423]">{error}</p>
     ) : (
       hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>
     )}
@@ -451,12 +477,12 @@ export const ToastStack: React.FC<{ toasts: readonly ToastItem[] }> = ({ toasts 
       {toasts.map((t) => (
         <div
           key={t.id}
-          className="flex min-w-60 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-[13px] text-slate-900 shadow-md"
+          className="flex min-w-60 items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-[13px] text-[#292929] shadow-md"
         >
           {t.kind === 'success' ? (
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[#1E7A42]" />
           ) : (
-            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+            <AlertTriangle className="h-4 w-4 shrink-0 text-[#802423]" />
           )}
           <span>{t.message}</span>
         </div>

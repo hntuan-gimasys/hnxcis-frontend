@@ -330,20 +330,20 @@ export const Ims015TuDienView: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
         <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
 
         {/* Toolbar trên: tiêu đề + Import/Export + Thêm (Bảng 05). */}
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Từ điển dữ liệu</h1>
-            <p className="mt-1 text-[13px] text-slate-500">
+            <h1 className="text-2xl font-bold text-[#292929]">Từ điển dữ liệu</h1>
+            <p className="mt-1 text-[13px] text-[#525252]">
               Quản lý và khai báo dữ liệu từ điển cho toàn bộ hệ thống
-              <span className="ml-2 rounded-sm bg-hnx-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-hnx-800">
+              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
                 {UC.ucCode}
               </span>
-              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-slate-600">
+              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
                 {DICTIONARY_GROUPS.length} nhóm LOV_GROUP
               </span>
             </p>
@@ -388,7 +388,7 @@ export const Ims015TuDienView: React.FC = () => {
           className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
         >
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Mã</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Mã</span>
             <input
               type="text"
               value={draftCriteria.code}
@@ -399,7 +399,7 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Giá trị</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Giá trị</span>
             <input
               type="text"
               value={draftCriteria.value}
@@ -410,7 +410,7 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Loại</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Loại</span>
             <select
               value={draftCriteria.lovGroup}
               onChange={(e) => setCriteria('lovGroup', e.target.value)}
@@ -426,7 +426,7 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Thứ tự</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Thứ tự</span>
             <input
               type="number"
               min={0}
@@ -438,7 +438,7 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Loại cha</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Loại cha</span>
             <select
               value={draftCriteria.parentId}
               onChange={(e) => setCriteria('parentId', e.target.value)}
@@ -454,7 +454,7 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="w-18 shrink-0 text-[13px] text-slate-600">Mô tả</span>
+            <span className="w-18 shrink-0 text-[13px] text-[#525252]">Mô tả</span>
             <input
               type="text"
               value={draftCriteria.description}
@@ -553,7 +553,7 @@ export const Ims015TuDienView: React.FC = () => {
                   const parentLabel = parentLabelOf(row.lookupParentId);
 
                   return (
-                    <tr key={row.id} className="hover:bg-hnx-50/60">
+                    <tr key={row.id} className="hover:bg-[#F8FAFC]">
                       <td className={`${TD_CLASS} text-center text-slate-500`}>
                         {list.startIdx + idx + 1}
                       </td>
@@ -605,7 +605,7 @@ export const Ims015TuDienView: React.FC = () => {
                           onClick={() => setDeleteTarget(row)}
                           title={`Xóa ${row.value}`}
                           aria-label={`Xóa ${row.value}`}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-[#802423]/10 hover:text-[#802423]"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

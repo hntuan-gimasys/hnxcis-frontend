@@ -32,10 +32,10 @@ export const UseCasePlaceholder: React.FC<UseCasePlaceholderProps> = ({
       {breadcrumb}
     </div>
 
-    <h1 className="mt-2 text-2xl font-bold text-slate-900">{title}</h1>
+    <h1 className="mt-2 text-2xl font-bold text-[#292929]">{title}</h1>
 
-    <div className="mt-4 rounded-md border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-xs">
-      <span className="mr-2 rounded-sm bg-hnx-100 px-2 py-0.5 font-mono text-[11px] font-bold text-hnx-800">
+    <div className="mt-4 rounded-md border border-slate-200 bg-white p-4 text-sm text-[#525252] shadow-xs">
+      <span className="mr-2 rounded-sm bg-[#E6F4EA] px-2 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
         {ucCode}
       </span>
       Màn hình đang chờ dựng nghiệp vụ theo SRS.

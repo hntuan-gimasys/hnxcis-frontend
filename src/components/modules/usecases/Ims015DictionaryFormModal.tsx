@@ -254,14 +254,14 @@ export const Ims015DictionaryFormModal: React.FC<Ims015DictionaryFormModalProps>
         }
       >
         <div className="flex gap-3.5 px-5 pt-5 pb-1.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FDF1E0] text-[#B9691B]">
             <AlertTriangle className="h-5 w-5" />
           </div>
           <div>
-            <div className="mb-1 text-sm font-semibold text-slate-900">
+            <div className="mb-1 text-sm font-semibold text-[#292929]">
               Bạn có chắc muốn hủy?
             </div>
-            <div className="text-[13px] text-slate-500">Dữ liệu chưa lưu sẽ mất.</div>
+            <div className="text-[13px] text-[#525252]">Dữ liệu chưa lưu sẽ mất.</div>
           </div>
         </div>
       </ModalShell>

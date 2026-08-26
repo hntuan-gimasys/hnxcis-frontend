@@ -542,8 +542,24 @@ export default function App() {
   /** Ở hai cổng tự do, danh tính là khách — không phải người vừa đăng nhập IMS. */
   const portalUser = activePortal === 'corporate' ? guestOrgUser : currentUser;
 
+  /**
+   * Nen trang cua /ims theo bang mau Figma: xam nhat #EBEBEB, chu #292929.
+   *
+   * Chi ap cho cong noi bo. ICDS va Corporate News giu nguyen `bg-slate-50` —
+   * hai cong do khong nam trong pham vi doi mau.
+   */
+  const shellClass =
+    activePortal === 'internal'
+      ? 'min-h-screen bg-[#EBEBEB] text-[#292929] flex flex-col font-sans antialiased'
+      : 'min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased';
+
+  const mainClass =
+    activePortal === 'internal'
+      ? 'flex-1 overflow-y-auto bg-[#EBEBEB]'
+      : 'flex-1 overflow-y-auto bg-slate-50';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
+    <div className={shellClass}>
       {/* Header */}
       <Header
         activePortal={activePortal}
@@ -576,7 +592,7 @@ export default function App() {
         />
 
         {/* Content View */}
-        <main className="flex-1 overflow-y-auto bg-slate-50">
+        <main className={mainClass}>
           {activePortal === 'public' && (
             <PublicCorporateNews
               organizations={organizations}
