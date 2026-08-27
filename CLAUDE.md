@@ -7,10 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 HNX-CIS Frontend — a React SPA for the Hanoi Stock Exchange's Listing / Bond Market / Disclosure
 management system (Vietnamese-language UI). It is currently in a **frontend-only, mock-data
 prototype stage**: almost all entities (organizations, securities, submissions, workflows...) live
-in `src/data/mockData.ts` and are mutated in-memory via React state in `src/App.tsx`. The only
-wired-up real backend calls are the four Gemini-powered AI features in `src/services/aiService.ts`.
-Keep this in mind — most "business logic" changes should extend the mock data / client-side
-services rather than assume a live REST backend exists for that entity yet.
+in `src/data/*.ts` (`mockData.ts` plus per-area files: `accessMock.ts`, `businessMock.ts`,
+`metadataMock.ts`, `roleCatalog.ts`, `dossierForms.ts`, `translationGlossary.ts`) and are mutated
+in-memory via React state in `src/App.tsx`. The only wired-up real backend calls are the four
+Gemini-powered AI features in `src/services/aiService.ts`. Keep this in mind — most "business
+logic" changes should extend the mock data / client-side services rather than assume a live REST
+backend exists for that entity yet.
 
 ## Commands
 
@@ -77,12 +79,44 @@ persona) as `portalUser` for org context; `/news` needs no user at all.
   - `tttp_*` → `BondModule` (Phòng Thị trường Trái phiếu — private/green bonds)
   - `tttt_*` → `DisclosureModule` (Phòng Công bố Thông tin — approval inbox, violations, display config)
   - `admin_*` → `AdminModule` (form/rule builder, user & ABAC permission management)
+  - `meta_*` → `MetadataModule`, `access_*` → `AccessModule`, `surv_*` → `SurveillanceModule`,
+    `own_*` → `OwnershipModule`, `bond_*` → `BondExtraModule`, `cbtt_*` → `DisclosureExtraModule`,
+    `report_*` → `ReportModule`, `survey_*` → `SurveyModule`
+  - `uc_*` → `UseCaseRouter` (see "SRS-driven use-case screens" below — a different registration
+    mechanism from the other prefixes)
 
-  When adding a new screen, follow this prefix convention and wire it into both `Sidebar.tsx`
-  (nav entry, gated by role) and the corresponding `startsWith('xxx_')` block in `App.tsx`.
+  When adding a new screen for one of the plain prefixes above, follow the convention and wire it
+  into both `Sidebar.tsx` (nav entry, gated by role) and the corresponding `startsWith('xxx_')`
+  block in `App.tsx`. For a screen that has a formal SRS doc, use the `uc_*` mechanism instead.
 
 - Role gating (`Sidebar.tsx`) uses substring checks on `UserRoleCode` (e.g. `userRole.includes('QLNY')`),
   not a permission table — `ROLE_SYS_ADMIN`/`ROLE_BIZ_ADMIN` and `ROLE_HNX_EXEC` see everything.
+
+### SRS-driven use-case screens (`src/components/modules/usecases/`)
+
+A subset of IMS screens (catalog/lookup management: countries, provinces, wards, departments,
+enterprise types, positions, dictionary values...) are built directly from formal spec docs in
+`docs/srs/[CODE] <Vietnamese title>.md` and registered separately from the plain `activeModule`
+prefixes above:
+
+- `src/lib/imsRoutes.ts` (`IMS_USE_CASES`) is the single source of truth tying together the
+  `uc_*` module code, the URL slug (`/ims/<slug>`), the SRS use-case code, and the sidebar
+  label/breadcrumb — declared once instead of in three places that could drift apart.
+- `src/components/modules/usecases/index.tsx` (`UseCaseRouter`) maps each `uc_*` code to its view
+  component; `App.tsx` renders it via a single `isImsUseCaseModule(activeModule)` check rather than
+  one more `startsWith('xxx_')` branch.
+- Unlike the rest of `/ims` (state-based navigation only), these screens each get a real deep-linkable
+  URL: `imsModuleFromPath`/`imsPathForModule` in `imsRoutes.ts` convert between the URL and the
+  module code, called from the same `popstate`/history plumbing that drives portal routing.
+- `catalogTypes.ts`, `catalogUi.tsx`, and the `useCatalogList` hook factor out what the SRS docs
+  specify identically across these screens: the `CatalogRecord` shape (`statusFlg`/`activeFlg`/
+  `deleteFlg` numeric flags, not booleans — matches the DB column types verbatim), soft-delete
+  filtering, keyword search applied only on submit/Enter (not per-keystroke), default sort by
+  `createdDate`, and pagination. Each screen still owns its own `rows` state and add/edit/delete
+  logic — only list *behavior* is shared, not data.
+- To add a new SRS-backed catalog screen: add an entry to `IMS_USE_CASES`, add the `uc_*` → view
+  mapping in `usecases/index.tsx`, and build the view on `useCatalogList` + `catalogUi.tsx` so it
+  stays consistent with the others.
 
 ### Domain model (`src/types/hnx.ts`)
 

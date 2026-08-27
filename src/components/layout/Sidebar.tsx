@@ -211,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
    */
   const asideSkin =
     activePortal === 'internal'
-      ? 'bg-[#008A4B] text-white border-r border-[#004D28]'
+      ? 'bg-[linear-gradient(180deg,#003F27_0%,#00663D_33%,#009F5F_66%,#22AF73_100%)] text-white border-r border-[#004D28]'
       : 'bg-hnx-sidebar text-emerald-100 border-r border-emerald-900/60';
 
   const asideClass = [
