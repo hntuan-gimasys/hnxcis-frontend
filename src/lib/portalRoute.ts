@@ -12,9 +12,9 @@ import { imsModuleFromPath } from './imsRoutes';
  *
  * Ba cổng là ba địa chỉ riêng, không phải ba tab của một trang:
  *
- *   /ims    IMS  — cổng nội bộ HNX, BẮT BUỘC đăng nhập bằng tài khoản HNX
- *   /icds   ICDS — cổng doanh nghiệp, BẮT BUỘC đăng nhập bằng tài khoản ORGANIZATION
- *   /news   Corporate News — trang tin, BẮT BUỘC đăng nhập bằng tài khoản PUBLIC
+ *   /ims      IMS  — cổng nội bộ HNX, BẮT BUỘC đăng nhập bằng tài khoản HNX
+ *   /icds     ICDS — cổng doanh nghiệp, BẮT BUỘC đăng nhập bằng tài khoản ORGANIZATION
+ *   /hnxcns   Corporate News — trang tin, BẮT BUỘC đăng nhập bằng tài khoản PUBLIC
  *
  * VÌ SAO TỰ VIẾT THAY VÌ DÙNG react-router
  *
@@ -33,7 +33,7 @@ export type Portal = 'internal' | 'corporate' | 'public';
 export const PORTAL_PATH: Record<Portal, string> = {
   internal: '/ims',
   corporate: '/icds',
-  public: '/news',
+  public: '/hnxcns',
 };
 
 export const PORTAL_LABEL: Record<Portal, string> = {
@@ -69,7 +69,7 @@ export function portalFromPath(pathname: string): Portal {
 
 export function usePortalRoute(): { portal: Portal; goToPortal: (next: Portal) => void } {
   const [portal, setPortal] = useState<Portal>(() =>
-    portalFromPath(typeof window === 'undefined' ? '/news' : window.location.pathname),
+    portalFromPath(typeof window === 'undefined' ? '/hnxcns' : window.location.pathname),
   );
 
   useEffect(() => {
@@ -80,8 +80,8 @@ export function usePortalRoute(): { portal: Portal; goToPortal: (next: Portal) =
 
   /**
    * Chuẩn hoá `/` và các đường dẫn lạ thành đường dẫn thật, dùng replaceState để
-   * không tạo thêm một mục trong lịch sử duyệt — bấm Back từ /news sẽ quay về
-   * trang trước đó chứ không kẹt lại ở chính /news.
+   * không tạo thêm một mục trong lịch sử duyệt — bấm Back từ /hnxcns sẽ quay về
+   * trang trước đó chứ không kẹt lại ở chính /hnxcns.
    *
    * Ngoại lệ: `/ims/<ma-uc>` là đường dẫn thật của một chức năng IMS (xem
    * `imsRoutes.ts`), không phải đường dẫn lạ — giữ nguyên, nếu không mọi deep

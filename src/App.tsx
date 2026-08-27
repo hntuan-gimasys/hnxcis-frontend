@@ -66,7 +66,7 @@ import { UseCaseRouter } from './components/modules/usecases';
 
 export default function App() {
   /**
-   * Ba cổng là ba địa chỉ URL riêng (/ims, /icds, /news) chứ không phải ba tab.
+   * Ba cổng là ba địa chỉ URL riêng (/ims, /icds, /hnxcns) chứ không phải ba tab.
    * `usePortalRoute` đọc đường dẫn hiện tại và nghe nút Back của trình duyệt.
    */
   const { portal: activePortal } = usePortalRoute();
@@ -76,7 +76,7 @@ export default function App() {
    * nghiệp, không phải dashboard nội bộ.
    */
   const [activeModule, setActiveModule] = useState<string>(() => {
-    const path = typeof window === 'undefined' ? '/news' : window.location.pathname;
+    const path = typeof window === 'undefined' ? '/hnxcns' : window.location.pathname;
     if (portalFromPath(path) === 'corporate') return 'corp_dashboard';
     return imsModuleFromPath(path) ?? DEFAULT_IMS_MODULE;
   });

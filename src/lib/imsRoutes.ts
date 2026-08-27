@@ -15,7 +15,7 @@
  * Mã module giữ tiền tố `uc_` — `App.tsx` định tuyến theo tiền tố này, đúng quy
  * ước sẵn có của các khối `qlny_`, `tttp_`, `meta_`...
  *
- * CHỈ áp dụng cho /ims. Hai cổng /icds và /news không dùng file này.
+ * CHỈ áp dụng cho /ims. Hai cổng /icds và /hnxcns không dùng file này.
  */
 export interface ImsUseCaseRoute {
   /** Mã module nội bộ, tiền tố `uc_`. */

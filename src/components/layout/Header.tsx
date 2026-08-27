@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/*
             Tên cổng đang mở — thay cho bộ tab chuyển cổng trước đây.
 
-            Ba cổng giờ là ba địa chỉ riêng (/ims, /icds, /news) chứ không phải
+            Ba cổng giờ là ba địa chỉ riêng (/ims, /icds, /hnxcns) chứ không phải
             ba tab của cùng một trang, nên header chỉ cho biết đang ở đâu, không
             còn là chỗ nhảy qua lại. Ai cần cổng khác thì mở đúng địa chỉ của nó.
           */}

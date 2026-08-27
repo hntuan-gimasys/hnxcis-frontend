@@ -91,7 +91,7 @@ const IMS_USE_CASE_ICONS: Record<string, React.ComponentType<{ className?: strin
  * trong repo; bật lại cờ này là menu cũ hiện lại đầy đủ. Xoá hẳn sẽ làm mất
  * đường vào hàng chục màn hình đã dựng xong mà chưa có gì thay thế.
  *
- * KHÔNG ảnh hưởng /icds và /news: hai cổng đó có nhánh render riêng phía trên.
+ * KHÔNG ảnh hưởng /icds và /hnxcns: hai cổng đó có nhánh render riêng phía trên.
  */
 const SHOW_LEGACY_IMS_NAV = false;
 
