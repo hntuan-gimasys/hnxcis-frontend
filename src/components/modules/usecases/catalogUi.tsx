@@ -82,7 +82,7 @@ export const BTN_BASE =
   'inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-medium ' +
   'whitespace-nowrap border transition-colors disabled:opacity-40 disabled:cursor-default';
 
-export const BTN_PRIMARY = `${BTN_BASE} border-transparent bg-[#008A4B] text-white hover:bg-[#00733E] shadow-xs`;
+export const BTN_PRIMARY = `${BTN_BASE} border-transparent bg-[linear-gradient(90deg,#003F27_0%,#00663D_33%,#009F5F_66%,#22AF73_100%)] text-white hover:brightness-110 shadow-xs`;
 export const BTN_OUTLINE = `${BTN_BASE} border-slate-300 bg-white text-[#292929] hover:bg-slate-50`;
 export const BTN_DANGER = `${BTN_BASE} border-transparent bg-[#802423] text-white hover:bg-[#802423]`;
 
