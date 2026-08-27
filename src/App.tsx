@@ -69,7 +69,7 @@ export default function App() {
    * Ba cổng là ba địa chỉ URL riêng (/ims, /icds, /news) chứ không phải ba tab.
    * `usePortalRoute` đọc đường dẫn hiện tại và nghe nút Back của trình duyệt.
    */
-  const { portal: activePortal, goToPortal } = usePortalRoute();
+  const { portal: activePortal } = usePortalRoute();
 
   /**
    * Module mặc định phụ thuộc cổng: vào /icds là vào thẳng dashboard doanh
@@ -122,25 +122,19 @@ export default function App() {
   const [users] = useState<UserAccount[]>(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState<UserAccount>(INITIAL_USERS[1]); // Cán bộ P.QLNY by default
 
-  /**
-   * FR-060 — trạng thái đăng nhập, chỉ áp cho cổng IMS.
-   *
-   * ICDS và Corporate News vào tự do như một trang tin: không có bước xác thực,
-   * không có "người dùng hiện tại". Vì vậy `authenticated` chỉ được kiểm tra khi
-   * đang ở /ims.
-   */
+  /** FR-060 — trạng thái đăng nhập của cổng IMS. */
   const [authenticated, setAuthenticated] = useState(false);
 
   /**
-   * Người dùng mặc định cho cổng ICDS khi không đăng nhập. CorporatePortal cần
-   * biết mình đang đại diện tổ chức nào để lọc nghĩa vụ và hồ sơ; ở prototype
-   * này lấy cố định persona doanh nghiệp đầu tiên, khớp với tên tổ chức đang
-   * hiển thị cứng trong Sidebar.
+   * Phiên đăng nhập của ICDS và Corporate News.
+   *
+   * Cả ba cổng giờ đều bắt đăng nhập, nhưng mỗi cổng nhận đúng một nhóm tài
+   * khoản (`PORTAL_ACTOR_TYPE`) nên không thể dùng chung `currentUser`/
+   * `authenticated` của IMS — một tài khoản HNX đang mở /ims không có nghĩa là
+   * đã đăng nhập /icds. `null` = chưa đăng nhập cổng đó.
    */
-  const guestOrgUser = useMemo(
-    () => INITIAL_USERS.find((u) => u.actorType === 'ORGANIZATION') ?? INITIAL_USERS[0],
-    [],
-  );
+  const [icdsUser, setIcdsUser] = useState<UserAccount | null>(null);
+  const [newsUser, setNewsUser] = useState<UserAccount | null>(null);
 
   // Entities Data
   const [organizations] = useState(INITIAL_ORGANIZATIONS);
@@ -517,15 +511,14 @@ export default function App() {
   };
 
   /**
-   * Chỉ IMS bắt đăng nhập.
-   *
-   * ICDS (FR-062, cổng doanh nghiệp) và Corporate News (FR-066, trang tin công
-   * khai) vào tự do — người dùng gõ thẳng địa chỉ là đọc được ngay, giống một
-   * trang báo. Chỉ khu vực nghiệp vụ nội bộ của HNX mới cần xác thực.
+   * Cả ba cổng đều bắt đăng nhập, mỗi cổng bằng một phiên riêng
+   * (`authenticated` cho IMS, `icdsUser`/`newsUser` cho hai cổng còn lại) vì mỗi
+   * cổng chỉ nhận đúng một nhóm tài khoản (`PORTAL_ACTOR_TYPE`).
    */
   if (activePortal === 'internal' && !authenticated) {
     return (
       <LoginScreen
+        portal="internal"
         users={users}
         policy={INITIAL_SECURITY_POLICY}
         onAuthenticated={(user) => {
@@ -538,9 +531,32 @@ export default function App() {
       />
     );
   }
+  if (activePortal === 'corporate' && !icdsUser) {
+    return (
+      <LoginScreen
+        portal="corporate"
+        users={users}
+        policy={INITIAL_SECURITY_POLICY}
+        onAuthenticated={(user) => {
+          setIcdsUser(user);
+          setActiveModule('corp_dashboard');
+        }}
+      />
+    );
+  }
+  if (activePortal === 'public' && !newsUser) {
+    return (
+      <LoginScreen
+        portal="public"
+        users={users}
+        policy={INITIAL_SECURITY_POLICY}
+        onAuthenticated={(user) => setNewsUser(user)}
+      />
+    );
+  }
 
-  /** Ở hai cổng tự do, danh tính là khách — không phải người vừa đăng nhập IMS. */
-  const portalUser = activePortal === 'corporate' ? guestOrgUser : currentUser;
+  const portalUser =
+    activePortal === 'corporate' ? icdsUser! : activePortal === 'public' ? newsUser! : currentUser;
 
   /**
    * Nen trang cua /ims theo bang mau Figma: xam nhat #EBEBEB, chu #292929.
@@ -568,15 +584,19 @@ export default function App() {
         lang={lang}
         setLang={setLang}
         onOpenMenu={() => setSidebarOpen(true)}
-        onLogout={
-          activePortal === 'internal'
-            ? () => {
-                setAuthenticated(false);
-                setActiveModule(DEFAULT_IMS_MODULE);
-                goToPortal('public');
-              }
-            : undefined
-        }
+        onLogout={() => {
+          // Đăng xuất chỉ xoá phiên của cổng đang mở — quay lại đúng cổng đó sẽ
+          // gặp lại LoginScreen thay vì bị đẩy sang cổng khác.
+          if (activePortal === 'internal') {
+            setAuthenticated(false);
+            setActiveModule(DEFAULT_IMS_MODULE);
+          } else if (activePortal === 'corporate') {
+            setIcdsUser(null);
+            setActiveModule('corp_dashboard');
+          } else {
+            setNewsUser(null);
+          }
+        }}
       />
 
       {/* Main Container */}

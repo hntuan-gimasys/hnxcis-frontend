@@ -16,6 +16,7 @@ import { LogIn, AlertTriangle, KeyRound, Lock } from 'lucide-react';
 import hnxLogoDark from '../../assets/hnx-logo-dark.png';
 import hnxBuilding from '../../assets/hnx.jpeg';
 import type { UserAccount, SecurityPolicy } from '../../types/hnx';
+import { PORTAL_ACTOR_TYPE, PORTAL_LABEL, PORTAL_PATH, type Portal } from '../../lib/portalRoute';
 
 /**
  * FR-060 · Màn hình đăng nhập và các ràng buộc bảo mật khi đăng nhập.
@@ -33,23 +34,24 @@ import type { UserAccount, SecurityPolicy } from '../../types/hnx';
  * ô mật khẩu chỉ cần khác rỗng. Điều đó được nói thẳng trên giao diện thay vì để
  * người dùng tưởng đã có kiểm soát thật.
  *
- * KHÔNG có nút chuyển "người dùng nội bộ / bên ngoài".
- *
- * Bản thiết kế lại của màn này (4e502a8) từng có nút đó để lọc danh sách tài khoản
- * gợi ý. Nó bị bỏ khi ba cổng tách thành ba địa chỉ riêng: màn này chỉ phục vụ
- * /ims — khu vực nghiệp vụ nội bộ của HNX. Cổng doanh nghiệp ICDS nằm ở /icds và
- * vào tự do, không qua đây. Giữ lại nút sẽ ngụ ý tài khoản doanh nghiệp đăng nhập
- * được ở đây, trong khi `submitCredentials` bên dưới từ chối đúng những tài khoản
- * đó — hai chỗ nói ngược nhau.
+ * DÙNG CHUNG CHO CẢ BA CỔNG, mỗi cổng chỉ nhận đúng nhóm tài khoản của mình
+ * (`PORTAL_ACTOR_TYPE`) — component nhận `portal` để biết đang gác cổng nào,
+ * thay vì có ba màn đăng nhập gần như giống hệt nhau. KHÔNG có nút chuyển
+ * "người dùng nội bộ / bên ngoài": danh sách tài khoản gợi ý tự lọc theo cổng,
+ * gõ nhầm tài khoản của cổng khác bị `submitCredentials` từ chối và chỉ thẳng
+ * sang cổng đúng.
  */
 
 interface LoginScreenProps {
+  portal: Portal;
   users: UserAccount[];
   policy: SecurityPolicy;
   onAuthenticated: (user: UserAccount) => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthenticated }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ portal, users, policy, onAuthenticated }) => {
+  const requiredActorType = PORTAL_ACTOR_TYPE[portal];
+  const otherPortals = (Object.keys(PORTAL_PATH) as Portal[]).filter((p) => p !== portal);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -94,14 +96,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
       return;
     }
     /**
-     * IMS là khu vực nghiệp vụ nội bộ của HNX. Tài khoản doanh nghiệp không vào
-     * đây — ICDS đã tách thành cổng riêng và vào tự do, nên chỉ đường sang đó
-     * thay vì báo "sai mật khẩu" và để người dùng thử lại vô ích.
+     * Mỗi cổng chỉ nhận đúng nhóm tài khoản của mình — báo thẳng cổng nào mới
+     * đúng thay vì nói chung chung "sai mật khẩu" và để người dùng thử lại vô ích.
      */
-    if (found.actorType !== 'HNX') {
+    if (found.actorType !== requiredActorType) {
+      const home = (Object.keys(PORTAL_ACTOR_TYPE) as Portal[]).find(
+        (p) => PORTAL_ACTOR_TYPE[p] === found.actorType,
+      );
       setError(
-        'Tài khoản này thuộc doanh nghiệp, không dùng cho cổng nội bộ IMS. ' +
-          'Cổng doanh nghiệp ICDS ở địa chỉ /icds và không cần đăng nhập.',
+        `Tài khoản này không thuộc nhóm được đăng nhập ở ${PORTAL_LABEL[portal]}.` +
+          (home ? ` Vui lòng đăng nhập ở ${PORTAL_PATH[home]} — ${PORTAL_LABEL[home]}.` : ''),
       );
       return;
     }
@@ -149,7 +153,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
           </h1>
           <p className="text-sm text-slate-500 mb-6">
             {stage === 'CREDENTIALS'
-              ? 'Vui lòng đăng nhập để truy cập tài khoản'
+              ? `Vui lòng đăng nhập để truy cập ${PORTAL_LABEL[portal]}`
               : `Vai trò ${pendingUser?.roleCode} yêu cầu xác thực hai yếu tố. Nhập mã 6 chữ số từ ứng dụng xác thực.`}
           </p>
 
@@ -279,17 +283,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
 
           {/*
             Giữ bố cục của bản thiết kế lại (khối nằm trong cột form, có đường kẻ
-            phân cách), nhưng chỉ liệt kê tài khoản HNX: IMS là cổng nội bộ, còn
-            ICDS đã tách thành địa chỉ riêng và vào tự do nên không cần tài khoản.
+            phân cách), nhưng danh sách tài khoản gợi ý tự lọc theo cổng đang gác
+            (`requiredActorType`) — mỗi cổng chỉ gợi ý tài khoản đăng nhập được ở đó.
           */}
           {stage === 'CREDENTIALS' && (
             <div className="mt-8 pt-5 border-t border-slate-100">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Tài khoản nội bộ thử nghiệm
+                Tài khoản thử nghiệm — {PORTAL_LABEL[portal]}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {users
-                  .filter((u) => u.actorType === 'HNX')
+                  .filter((u) => u.actorType === requiredActorType)
                   .map((u) => (
                     <button
                       key={u.id}
@@ -311,10 +315,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ users, policy, onAuthe
               </p>
 
               <div className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-                Chỉ cổng nội bộ <strong>IMS</strong> yêu cầu đăng nhập. Hai cổng còn lại vào tự do:
+                Cả ba cổng đều yêu cầu đăng nhập, mỗi cổng một nhóm tài khoản riêng:
                 <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
-                  <a href="/icds" className="text-hnx-mid hover:underline">/icds — Cổng Doanh nghiệp</a>
-                  <a href="/news" className="text-hnx-mid hover:underline">/news — Corporate News</a>
+                  {otherPortals.map((p) => (
+                    <a key={p} href={PORTAL_PATH[p]} className="text-hnx-mid hover:underline">
+                      {PORTAL_PATH[p]} — {PORTAL_LABEL[p]}
+                    </a>
+                  ))}
                 </div>
               </div>
             </div>

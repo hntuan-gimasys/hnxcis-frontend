@@ -12,9 +12,9 @@ import { imsModuleFromPath } from './imsRoutes';
  *
  * Ba cổng là ba địa chỉ riêng, không phải ba tab của một trang:
  *
- *   /ims    IMS  — cổng nội bộ HNX, BẮT BUỘC đăng nhập
- *   /icds   ICDS — cổng doanh nghiệp, vào tự do
- *   /news   Corporate News — trang tin công khai, vào tự do
+ *   /ims    IMS  — cổng nội bộ HNX, BẮT BUỘC đăng nhập bằng tài khoản HNX
+ *   /icds   ICDS — cổng doanh nghiệp, BẮT BUỘC đăng nhập bằng tài khoản ORGANIZATION
+ *   /news   Corporate News — trang tin, BẮT BUỘC đăng nhập bằng tài khoản PUBLIC
  *
  * VÌ SAO TỰ VIẾT THAY VÌ DÙNG react-router
  *
@@ -42,11 +42,18 @@ export const PORTAL_LABEL: Record<Portal, string> = {
   public: 'Corporate News',
 };
 
-/** Cổng duy nhất yêu cầu đăng nhập. Hai cổng còn lại vào tự do như trang tin. */
+/** Cả ba cổng đều yêu cầu đăng nhập, mỗi cổng chỉ nhận đúng nhóm tài khoản của mình. */
 export const REQUIRES_AUTH: Record<Portal, boolean> = {
   internal: true,
-  corporate: false,
-  public: false,
+  corporate: true,
+  public: true,
+};
+
+/** Nhóm tài khoản (`ActorType`) được phép đăng nhập ở mỗi cổng. */
+export const PORTAL_ACTOR_TYPE: Record<Portal, 'HNX' | 'ORGANIZATION' | 'PUBLIC'> = {
+  internal: 'HNX',
+  corporate: 'ORGANIZATION',
+  public: 'PUBLIC',
 };
 
 /**

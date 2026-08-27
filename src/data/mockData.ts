@@ -1492,6 +1492,20 @@ export const INITIAL_USERS: UserAccount[] = [
     roleCode: 'ROLE_CNTT_MANAGER',
     status: 'ACTIVE',
   },
+  {
+    id: 8,
+    createdAt: '2024-01-01T00:00:00Z',
+    createdBy: 1,
+    versionNo: 1,
+    isCurrent: true,
+    username: 'nha_dau_tu',
+    fullName: 'Nhà đầu tư - Bạn đọc Corporate News',
+    email: 'investor@example.com',
+    actorType: 'PUBLIC',
+    position: 'Bạn đọc',
+    roleCode: 'ROLE_PUBLIC',
+    status: 'ACTIVE',
+  },
 ];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
