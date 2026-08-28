@@ -753,11 +753,14 @@ export default function App() {
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
+          {/*
+            Không truyền `lang`/`setLang`: /ims không còn nút chuyển ngôn ngữ, và
+            không màn hình nào trong cổng nội bộ đọc cờ này. State `lang` vẫn ở
+            đây vì /icds và /hnxcns dùng.
+          */}
           <ImsTopHeader
             currentUser={currentUser}
             notifications={allNotifications}
-            lang={lang}
-            setLang={setLang}
             onOpenMenu={() => setSidebarOpen(true)}
             onNavigate={changeModule}
           />

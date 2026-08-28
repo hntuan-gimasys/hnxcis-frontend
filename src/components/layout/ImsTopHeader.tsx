@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Globe, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Search } from 'lucide-react';
 
 import { NotificationItem, UserAccount } from '../../types/hnx';
 import { IMS_USE_CASES } from '../../lib/imsRoutes';
@@ -24,13 +24,14 @@ import { IMS_USE_CASES } from '../../lib/imsRoutes';
  *
  * Danh tính người dùng nằm ở CHÂN SIDEBAR (xem `Sidebar.tsx`), nên ở đây chỉ có
  * avatar — bấm vào là hiện tên đầy đủ qua tooltip, không mở dropdown đổi persona.
+ *
+ * Góc phải CHỈ có chuông thông báo và avatar, đúng `.header-right` của file mẫu.
+ * Không có nút chuyển ngôn ngữ — xem ghi chú tại chỗ ở phần render.
  */
 
 interface ImsTopHeaderProps {
   currentUser: UserAccount;
   notifications: NotificationItem[];
-  lang: 'vi' | 'en';
-  setLang: (lang: 'vi' | 'en') => void;
   /** Mở drawer sidebar trên mobile. */
   onOpenMenu: () => void;
   /** Nhảy tới một chức năng từ ô tìm kiếm toàn cục. */
@@ -48,8 +49,6 @@ function initialsOf(fullName: string): string {
 export const ImsTopHeader: React.FC<ImsTopHeaderProps> = ({
   currentUser,
   notifications,
-  lang,
-  setLang,
   onOpenMenu,
   onNavigate,
 }) => {
@@ -186,17 +185,18 @@ export const ImsTopHeader: React.FC<ImsTopHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        {/* Chuyển ngôn ngữ VI/EN — chức năng thật của hệ thống (bản dịch CBTT). */}
-        <button
-          onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-          title="Chuyển đổi ngôn ngữ VI / EN"
-          className="inline-flex h-8.5 items-center gap-1.5 rounded-md px-2 text-xs font-bold tracking-widest text-[#525252] uppercase hover:bg-slate-100 hover:text-[#292929]"
-        >
-          <Globe className="h-4 w-4 text-[#008A4B]" />
-          <span>{lang}</span>
-        </button>
+      {/*
+        `.header-right{display:flex; align-items:center; gap:16px}` của file mẫu —
+        ĐÚNG HAI phần tử: chuông thông báo và avatar.
 
+        Nút chuyển ngôn ngữ VI/EN đã bỏ hẳn. Nó không có trong thiết kế, và ở /ims
+        nó cũng chẳng đổi được gì: không màn hình nào trong cổng nội bộ đọc `lang`
+        (đã rà toàn bộ `src/components/modules/`). Chức năng dịch VI→EN thật của hệ
+        thống nằm ở luồng CBTT (`onSaveTranslation` / `onPublishBilingual` trong
+        `DisclosureModule`), không liên quan tới cờ này. Hai cổng /icds và /hnxcns
+        VẪN dùng `lang` nên state ở `App.tsx` giữ nguyên.
+      */}
+      <div className="flex shrink-0 items-center gap-4">
         <div ref={bellRef} className="relative">
           <button
             onClick={() => setShowNotifs((v) => !v)}
