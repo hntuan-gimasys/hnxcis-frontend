@@ -40,8 +40,8 @@ import { Flag, STATUS_OPTIONS } from './catalogTypes';
  *
  *   Primary          #008A4B  nút chính, số trang đang chọn, ring khi focus
  *   Primary hover    #00733E  hover của nút chính
- *   Sidebar          #008A4B  nền sidebar /ims (đặt ở Sidebar.tsx)
- *   Sidebar active   #004D28  khối bo góc của mục menu đang chọn
+ *   Sidebar          #004D28  nền sidebar /ims (đặt ở Sidebar.tsx)
+ *   Sidebar active   #006B38  khối bo góc của mục menu đang chọn
  *   Success          #E6F4EA nền · #1E7A42 chữ/dot — badge "Đang hoạt động"
  *   Warning          #FDF1E0 nền · #B9691B chữ/dot — badge "Ngừng hoạt động"
  *   Danger           #802423  nút Xóa, viền trường lỗi, chữ lỗi, icon toast lỗi
@@ -422,11 +422,59 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
   </div>
 );
 
+/* ---------------------------------------------------------- breadcrumb */
+
+/**
+ * Cấp đầu của breadcrumb — hằng số, giống nhau ở cả bảy màn hình.
+ *
+ * Đây là nhóm menu đang chứa bảy màn hình này ở sidebar, nên breadcrumb đọc
+ * đúng như đường người dùng vừa bấm để tới đây.
+ */
+const CATALOG_ROOT = 'Quản lý danh mục';
+
+/**
+ * Breadcrumb hai cấp: `Quản lý danh mục › <tên danh mục>`.
+ *
+ * Lấy nguyên `.breadcrumb` của `docs/quan-ly-danh-muc_2.html`:
+ *
+ *     <div class="breadcrumb">Quản lý danh mục <span>›</span>
+ *       <span class="current">Quốc gia</span></div>
+ *
+ *     .breadcrumb          { font-size:12px; gap:6px; margin-bottom:16px }
+ *     .breadcrumb .current { color: <đậm hơn chặng đầu> }
+ *
+ * ĐÚNG HAI CẤP. Bản trước dùng đường dẫn ba cấp của SRS §2.1 ("Quản lý Hệ thống
+ * → Danh mục dùng chung → Quốc gia"), dài gần gấp đôi và có cấp giữa không tương
+ * ứng với bất kỳ mục nào trên sidebar — bấm vào cũng chẳng đi đâu được. Hai cấp
+ * khớp đúng cây menu thật: nhóm `Quản lý Danh mục` rồi tới màn hình.
+ *
+ * `mx-1.5` = 6px mỗi bên dấu phân cách, đúng bằng `gap:6px` của file mẫu. Màu cơ
+ * bản đặt ở `<nav>` để chặng đầu và dấu `›` cùng tông; chỉ chặng cuối ghi đè —
+ * đúng cách file mẫu dựng bằng `.breadcrumb` + `.current`.
+ */
+export const CatalogBreadcrumb: React.FC<{ current: string }> = ({ current }) => (
+  <nav aria-label="Đường dẫn" className="mb-4 flex items-center text-xs text-slate-500">
+    <span>{CATALOG_ROOT}</span>
+    {/* `aria-hidden`: dấu trang trí, trình đọc màn hình không cần đọc "›". */}
+    <span aria-hidden="true" className="mx-1.5">
+      ›
+    </span>
+    <span aria-current="page" className="font-medium text-slate-800">
+      {current}
+    </span>
+  </nav>
+);
+
 /* --------------------------------------------------------- khung màn hình */
 
 interface CatalogPageProps {
-  /** Đường dẫn màn hình theo SRS §2.1. */
-  breadcrumb: string;
+  /**
+   * Tên danh mục — chặng cuối của breadcrumb.
+   *
+   * Truyền `UC.menuLabel` để đúng một chuỗi lo cả nhãn sidebar và chặng cuối
+   * breadcrumb; hai chỗ đó luôn phải đọc giống nhau vì cùng chỉ một màn hình.
+   */
+  catalogName: string;
   heading: string;
   /** Câu mô tả dưới tiêu đề. Nhận ReactNode để màn hình gắn thêm chip kỹ thuật. */
   subtitle: React.ReactNode;
@@ -443,7 +491,7 @@ interface CatalogPageProps {
  * góc và lệch cỡ chữ tiêu đề.
  */
 export const CatalogPage: React.FC<CatalogPageProps> = ({
-  breadcrumb,
+  catalogName,
   heading,
   subtitle,
   actions,
@@ -451,7 +499,7 @@ export const CatalogPage: React.FC<CatalogPageProps> = ({
 }) => (
   <div className="p-6">
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <nav className="mb-4 text-xs text-slate-500">{breadcrumb}</nav>
+      <CatalogBreadcrumb current={catalogName} />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>

@@ -200,7 +200,7 @@ export const Ims002QuocGiaView: React.FC = () => {
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading="Quốc gia"
         subtitle="Quản lý danh sách và tạo mới quốc gia"
         actions={

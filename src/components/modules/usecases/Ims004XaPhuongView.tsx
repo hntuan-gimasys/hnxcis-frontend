@@ -261,7 +261,7 @@ export const Ims004XaPhuongView: React.FC = () => {
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading="Phường xã"
         subtitle="Quản lý danh sách và tạo mới phường xã"
         actions={

@@ -356,7 +356,7 @@ export const Ims015TuDienView: React.FC = () => {
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading="Từ điển dữ liệu"
         subtitle={
           <>

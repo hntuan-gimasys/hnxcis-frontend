@@ -24,10 +24,22 @@ export interface ImsUseCaseRoute {
   readonly slug: string;
   /** Mã UC trong tài liệu SRS. */
   readonly ucCode: string;
-  /** Tên UC — dùng luôn làm nhãn menu và tiêu đề trang. */
+  /**
+   * Tên UC đầy đủ theo tài liệu SRS.
+   *
+   * Dùng cho tooltip và cho ô tìm kiếm toàn cục — gõ "quản lý danh mục" vẫn ra
+   * đúng chức năng. KHÔNG dùng làm nhãn menu: xem `menuLabel`.
+   */
   readonly label: string;
-  /** Đường dẫn màn hình theo đặc tả SRS mục 2.1, hiển thị như breadcrumb. */
-  readonly breadcrumb: string;
+  /**
+   * Nhãn hiển thị trên menu sidebar — tên danh mục, ngắn.
+   *
+   * Tách khỏi `label` vì hai chỗ cần hai độ dài khác nhau: menu chỉ rộng 256px và
+   * đã nằm dưới nhóm "Quản lý Danh mục", nên bảy dòng cùng mở đầu bằng "Quản lý
+   * danh mục ..." chỉ làm người đọc phải quét tới cuối dòng mới phân biệt được.
+   * Lấy đúng `navLabel` của file mẫu `docs/quan-ly-danh-muc_2.html`.
+   */
+  readonly menuLabel: string;
 }
 
 export const IMS_USE_CASES: readonly ImsUseCaseRoute[] = [
@@ -36,49 +48,49 @@ export const IMS_USE_CASES: readonly ImsUseCaseRoute[] = [
     slug: 'ims-002',
     ucCode: 'IMS-002',
     label: 'Quản lý danh mục Quốc gia',
-    breadcrumb: 'Quản lý Hệ thống → Danh mục dùng chung → Quốc gia',
+    menuLabel: 'Quốc gia',
   },
   {
     code: 'uc_ims_003',
     slug: 'ims-003',
     ucCode: 'IMS-003',
     label: 'Quản lý danh mục Tỉnh thành',
-    breadcrumb: 'Quản lý Hệ thống → Danh mục dùng chung → Tỉnh thành',
+    menuLabel: 'Tỉnh thành',
   },
   {
     code: 'uc_ims_004',
     slug: 'ims-004',
     ucCode: 'IMS-004',
     label: 'Quản lý danh mục Xã phường',
-    breadcrumb: 'Quản lý Hệ thống → Danh mục dùng chung → Phường xã',
+    menuLabel: 'Phường / Xã',
   },
   {
     code: 'uc_ims_006',
     slug: 'ims-006',
     ucCode: 'IMS-006',
     label: 'Quản lý danh mục Phòng ban',
-    breadcrumb: 'Quản lý Hệ thống → Danh mục dùng chung → Phòng ban',
+    menuLabel: 'Phòng ban',
   },
   {
     code: 'uc_hnx_srs',
     slug: 'hnx-srs',
     ucCode: 'HNX-SRS',
     label: 'Quản lý Chức vụ',
-    breadcrumb: 'Quản lý Master Data → Quản lý danh mục → Chức vụ',
+    menuLabel: 'Chức vụ',
   },
   {
     code: 'uc_ims_008',
     slug: 'ims-008',
     ucCode: 'IMS-008',
     label: 'Quản lý danh mục Loại hình doanh nghiệp',
-    breadcrumb: 'Quản lý Master Data → Quản lý danh mục → Loại hình doanh nghiệp',
+    menuLabel: 'Loại hình doanh nghiệp',
   },
   {
     code: 'uc_ims_015',
     slug: 'ims-015',
     ucCode: 'IMS-015',
     label: 'Quản lý, khai báo dữ liệu từ điển',
-    breadcrumb: 'Quản lý Hệ thống → Danh mục dùng chung → Từ điển',
+    menuLabel: 'Từ điển',
   },
 ] as const;
 

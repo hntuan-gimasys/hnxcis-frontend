@@ -49,12 +49,6 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronRight,
-  Globe,
-  Map,
-  MapPin,
-  Network,
-  IdCard,
-  Briefcase,
 } from 'lucide-react';
 
 /** Hai chữ cái đầu của tên, cho avatar tròn ở chân sidebar. */
@@ -75,23 +69,6 @@ import { UserAccount, UserRoleCode } from '../../types/hnx';
 import { IMS_USE_CASES } from '../../lib/imsRoutes';
 import { getRoleLabel } from '../../data/roleCatalog';
 import hnxLogo from '../../assets/hnx-logo.png';
-
-/**
- * Icon cho bảy chức năng có SRS ở khối "Quản lý Danh mục" của cổng IMS.
- *
- * Nhãn, mã UC và đường dẫn nằm ở `lib/imsRoutes.ts` — đó là dữ liệu định tuyến,
- * dùng chung với App.tsx và portalRoute.ts. Chỉ riêng icon ở lại đây vì nó là
- * chuyện của giao diện, và `lib/` không nên phụ thuộc vào lucide-react.
- */
-const IMS_USE_CASE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  uc_ims_002: Globe,
-  uc_ims_003: Map,
-  uc_ims_004: MapPin,
-  uc_ims_006: Network,
-  uc_hnx_srs: IdCard,
-  uc_ims_008: Briefcase,
-  uc_ims_015: BookMarked,
-};
 
 /**
  * Menu cũ của cổng IMS — tạm ẩn, không xoá.
@@ -225,13 +202,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
   /**
    * Nen sidebar tach theo cong.
    *
-   * /ims doi sang xanh ngoc #008A4B theo bang mau Figma. ICDS PHAI giu nguyen
-   * `bg-hnx-sidebar` + `text-emerald-100`: `asideClass` la chuoi dung chung cho
-   * ca hai nhanh render, doi thang o day la doi luon mau sidebar cua /icds.
+   * /ims lay NGUYEN VEN `.sidebar` cua `docs/quan-ly-danh-muc_2.html`:
+   *
+   *     background: linear-gradient(90deg,#003F27 0%,#00663D 30%,#009F5F 60%,#22AF73 100%);
+   *     background-size: 220% 100%;
+   *
+   * HAI DONG PHAI DI CUNG NHAU. Gradient la 90deg — chay NGANG tu trai sang
+   * phai, khong phai doc tu tren xuong. Va `background-size:220%` keo dai mau
+   * rong 2,2 lan be ngang sidebar, nen tren 260px chi hien ra 1/2,2 = 45,45%
+   * dau cua ramp: tu #003F27, qua #00663D (o ~66% be ngang cot menu), dung lai
+   * quanh #00834E o canh phai. Diem #009F5F va #22AF73 KHONG BAO GIO duoc ve.
+   *
+   * Do la ly do dai mau trong file mau vua co do sau vua khong bi choi. Bo
+   * `background-size` di la lo ca #22AF73 ra — sidebar sang bang mau nut Primary
+   * va chu trang bat dau troi. Doi sang mot mau phang thi mat han do sau.
+   *
+   * KHONG co vien phai: file mau de dai mau tu ket thuc. Canh phai ~#00834E ap
+   * vao nen noi dung #EBEBEB da du tach bach.
+   *
+   * ICDS PHAI giu nguyen `bg-hnx-sidebar` + `text-emerald-100`: `asideSkin` la
+   * chuoi dung chung cho ca hai nhanh render, doi thang o day la doi luon mau
+   * sidebar cua /icds.
    */
   const asideSkin =
     activePortal === 'internal'
-      ? 'bg-[linear-gradient(180deg,#003F27_0%,#00663D_33%,#009F5F_66%,#22AF73_100%)] text-white border-r border-[#004D28]'
+      ? 'bg-[linear-gradient(90deg,#003F27_0%,#00663D_30%,#009F5F_60%,#22AF73_100%)] bg-[length:220%_100%] text-white'
       : 'bg-hnx-sidebar text-emerald-100 border-r border-emerald-900/60';
 
   const asideClass = [
@@ -376,7 +371,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         gradient xanh của sidebar nó đọc rõ; bản `hnx-logo-dark.png` thì không.
         Ảnh đã mang tên hệ thống song ngữ nên không cần thêm dòng chữ nào.
       */}
-      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/15 px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/14 px-4">
         <img
           src={hnxLogo}
           alt="Sở Giao dịch Chứng khoán Hà Nội — Hanoi Stock Exchange"
@@ -403,17 +398,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           copy link gửi cho người khác vẫn mở đúng màn hình.
         */}
         <div className="space-y-0.5">
-          <div className="flex select-none items-center gap-2 rounded-lg px-2.5 py-2.5 text-[13px] font-semibold text-white">
-            <Settings className="h-4 w-4 shrink-0 text-white" />
+          {/*
+            `.nav-group-label` của file mẫu: padding 9px 10px, font-weight 500,
+            màu rgba(255,255,255,.92), icon opacity .9, bo góc 8px.
+          */}
+          <div className="flex select-none items-center gap-2 rounded-lg px-2.5 py-2.25 text-[13px] font-medium text-white/92">
+            <Settings className="h-4 w-4 shrink-0 opacity-90" />
             <span>Quản lý hệ thống</span>
-            <ChevronDown className="ml-auto h-3.5 w-3.5 opacity-90" />
+            <ChevronDown className="ml-auto h-4 w-4 shrink-0 opacity-90" />
           </div>
 
           <button
             type="button"
             onClick={() => setCatalogOpen((open) => !open)}
             aria-expanded={catalogOpen}
-            className="flex w-full items-center gap-2 rounded-lg py-2 pr-2.5 pl-5 text-[13px] font-medium text-white hover:bg-[#004D28]/40"
+            /*
+              `.nav-group-sub` của file mẫu: chữ rgba(255,255,255,.95), hover là
+              lớp phủ trắng 6% — nhạt hơn hover của mục con (8%) một bậc, để nhóm
+              cha không nổi hơn thứ mà nó chứa. Dấu tròn và chevron opacity .85.
+            */
+            className="flex w-full items-center gap-2 rounded-lg py-2 pr-2.5 pl-5 text-[13px] font-medium text-white/95 hover:bg-white/6"
           >
             <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-85" />
             <span>Quản lý Danh mục</span>
@@ -426,37 +430,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {catalogOpen && (
             <div className="mt-0.5 mb-2 pl-3.5">
-              {IMS_USE_CASES.map((uc) => {
-                const Icon = IMS_USE_CASE_ICONS[uc.code] ?? Library;
-                return (
-                  <button
-                    key={uc.code}
-                    onClick={() => pickModule(uc.code)}
-                    title={`${uc.ucCode} — ${uc.label}`}
-                    /*
-                      Mục đang chọn dùng Button Primary #375E27 của bảng màu Figma
-                      thay cho lớp trắng mờ trước đây; `active:` là màu Pressed
-                      #24341E. Chữ trắng trên #375E27 cho tỉ lệ tương phản ~8,3:1
-                      nên vẫn đọc tốt trên nền sidebar tối.
-                    */
-                    className={`my-px flex w-full items-center gap-2.5 rounded-lg py-2 pr-2.5 pl-5 text-left text-[13px] transition-colors ${
-                      activeModule === uc.code
-                        ? 'bg-[#004D28] font-semibold text-white'
-                        : 'text-white hover:bg-[#004D28]/40'
-                    }`}
-                  >
-                    <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-70" />
-                    {/*
-                      Icon dùng Primary Accent #54A72F khi mục chưa được chọn — nó
-                      nổi rõ trên nền sidebar tối. Mục đang chọn đã có nền #375E27
-                      nên icon chuyển sang trắng, vì #54A72F trên #375E27 gần như
-                      không phân biệt được.
-                    */}
-                    <Icon className="h-3.5 w-3.5 shrink-0 text-white" />
-                    <span className="leading-tight">{uc.label}</span>
-                  </button>
-                );
-              })}
+              {IMS_USE_CASES.map((uc) => (
+                <button
+                  key={uc.code}
+                  onClick={() => pickModule(uc.code)}
+                  /*
+                    Nhãn menu là tên danh mục ngắn (`menuLabel`); tên UC đầy đủ và
+                    mã UC chuyển hết vào tooltip — vẫn tra được mà không chiếm dòng.
+                  */
+                  title={`${uc.ucCode} — ${uc.label}`}
+                  /*
+                    Ba trạng thái lấy nguyên `.nav-item` của file mẫu — KHÔNG
+                    thêm gì:
+
+                      .nav-item          color: rgba(255,255,255,.8)
+                                         background: transparent
+                                         border-radius: 8px
+                                         margin: 1px 0
+                                         padding: 8px 10px 8px 20px
+                                         transition: background .12s ease,
+                                                     color .12s ease
+                      .nav-item:hover    background: rgba(255,255,255,0.08)
+                                         color: #fff
+                      .nav-item.active   background: rgba(255,255,255,0.16)
+                                         color: #fff
+                                         font-weight: 500
+
+                    Nền của cả ba trạng thái là LỚP PHỦ TRẮNG trong suốt, không
+                    phải một mã hex riêng: nhờ vậy dải gradient vẫn hiện xuyên
+                    qua thẻ, mục đang chọn ở đầu cột và ở cuối cột đều ăn theo
+                    đúng đoạn màu dưới nó. Một hex đặc như `#006B38` trước đây
+                    thì đè phẳng lên gradient và tự phá mất độ sâu.
+
+                    File mẫu KHÔNG cho `.nav-item` border hay box-shadow nào —
+                    ở cả ba trạng thái — nên ở đây cũng không có.
+                  */
+                  className={`my-px flex w-full items-center gap-2.5 rounded-lg py-2 pr-2.5 pl-5 text-left text-[13px] transition-colors duration-[120ms] ease-[ease] ${
+                    activeModule === uc.code
+                      ? 'bg-white/16 font-medium text-white'
+                      : 'text-white/80 hover:bg-white/8 hover:text-white'
+                  }`}
+                >
+                  {/*
+                    Bảy mục này KHÔNG có icon — theo `.nav-item` của file mẫu
+                    `docs/quan-ly-danh-muc_2.html`: chỉ dấu tròn dẫn rồi tới chữ.
+                    Bảy icon trước đây (địa cầu, bản đồ, ghim...) không nói thêm
+                    được gì mà "Quốc gia", "Tỉnh thành" chưa nói, nên chỉ làm cột
+                    menu rối thêm.
+                  */}
+                  <span className="h-[5px] w-[5px] shrink-0 rounded-full bg-current opacity-70" />
+                  <span className="leading-tight">{uc.menuLabel}</span>
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -770,7 +795,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         tính, và để hai chỗ cùng làm một việc thì chỉ tạo thêm chỗ để lệch nhau.
       */}
       {currentUser && (
-        <div className="flex shrink-0 items-center gap-2.5 border-t border-white/15 px-4 py-3.5">
+        <div className="flex shrink-0 items-center gap-2.5 border-t border-white/14 px-4 py-3.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
             {initialsOf(currentUser.fullName)}
           </div>

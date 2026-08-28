@@ -187,7 +187,7 @@ export const Ims006PhongBanView: React.FC = () => {
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading="Phòng ban"
         subtitle="Quản lý danh sách và tạo mới phòng ban"
         actions={

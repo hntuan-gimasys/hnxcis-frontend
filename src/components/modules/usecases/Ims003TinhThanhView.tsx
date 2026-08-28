@@ -200,7 +200,7 @@ export const Ims003TinhThanhView: React.FC = () => {
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading="Tỉnh thành"
         subtitle="Quản lý danh sách và tạo mới tỉnh thành"
         actions={

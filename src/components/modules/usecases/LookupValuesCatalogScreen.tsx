@@ -53,7 +53,7 @@ import { LookupValueRow } from './lookupValuesMock';
  */
 
 export interface LookupCatalogConfig {
-  /** Mã module trong `imsRoutes.ts`, dùng để lấy breadcrumb và mã UC. */
+  /** Mã module trong `imsRoutes.ts`, dùng để lấy tên danh mục và mã UC. */
   readonly moduleCode: string;
   /** Tiêu đề trang. VD: "Chức vụ". */
   readonly heading: string;
@@ -264,7 +264,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
   return (
     <>
       <CatalogPage
-        breadcrumb={UC.breadcrumb}
+        catalogName={UC.menuLabel}
         heading={config.heading}
         subtitle={
           <>
