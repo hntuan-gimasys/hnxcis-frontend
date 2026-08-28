@@ -51,5 +51,45 @@
   .bg-hnx-sidebar {
     background-color: #0a1b05;
   }
+
+  .bg-hnx-search-hub {
+    background: linear-gradient(180deg, #1b856b 21.67%, #12573a 55.76%, #0b4a28 78.48%);
+  }
+
+  .bg-hnx-footer {
+    background: linear-gradient(
+      180deg,
+      #093b26 0%,
+      #093824 7.14%,
+      #083522 14.29%,
+      #08321f 21.43%,
+      #072f1d 28.57%,
+      #072c1b 35.71%,
+      #062919 42.86%,
+      #062617 50%,
+      #052315 57.14%,
+      #052113 64.29%,
+      #041e11 71.43%,
+      #041b0f 78.57%,
+      #04180d 85.71%,
+      #03160b 92.86%,
+      #031309 100%
+    );
+  }
+
+  /* Cuộn ngang liên tục cho thanh chỉ số của PublicNewsHeader — nội dung được
+     lặp lại đúng hai lần trong DOM nên translateX(-50%) khớp khít, không giật. */
+  .animate-hnx-ticker {
+    animation: hnx-ticker-scroll 45s linear infinite;
+  }
+
+  @keyframes hnx-ticker-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 

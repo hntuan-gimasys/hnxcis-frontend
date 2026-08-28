@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Search,
   Building2,
@@ -12,6 +12,8 @@ import {
   Download,
   Eye,
   Award,
+  ChevronDown,
+  RotateCcw,
 } from 'lucide-react';
 import {
   Organization,
@@ -83,6 +85,99 @@ function formatDate(iso?: string): string {
   ).slice(-2)}`;
 }
 
+const TIME_RANGE_OPTIONS = [
+  { value: 'ALL', label: 'Tất cả thời gian' },
+  { value: 'TODAY', label: 'Hôm nay' },
+  { value: '7D', label: '7 ngày qua' },
+  { value: '30D', label: '30 ngày qua' },
+];
+
+/** So theo đồng hồ thực — mốc mà các service khác trong hệ thống (vd.
+ * `notificationService`) cũng dùng, dù dữ liệu mẫu được soạn quanh các ngày
+ * cố định trong 2026 nên bộ lọc "Hôm nay" có thể không khớp bản ghi nào. */
+function isWithinTimeRange(iso: string | undefined, range: string): boolean {
+  if (range === 'ALL' || !iso) return true;
+  const published = new Date(iso);
+  const now = new Date();
+  if (range === 'TODAY') return published.toDateString() === now.toDateString();
+  const days = range === '7D' ? 7 : 30;
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - days);
+  return published >= cutoff && published <= now;
+}
+
+interface FilterSelectProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}
+
+/** Ba bộ lọc trong panel "Lọc nâng cao" dùng chung một khối nhãn + dropdown bo
+ * tròn nền trắng — tách riêng để không lặp lại cùng một khối JSX ba lần.
+ *
+ * Dùng menu tự dựng thay vì `<select>` gốc: hộp tuỳ chọn của `<select>` do
+ * trình duyệt vẽ ở lớp riêng, CSS của trang không chỉnh được kích thước/bo
+ * góc/đệm của nó — mà khối "Thị trường" cần đúng các trị số đó (rộng 361.5px,
+ * cao 122px, bo góc 10px...). */
+const FilterSelect: React.FC<FilterSelectProps> = ({ label, value, onChange, options }) => {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open]);
+
+  const selectedLabel = options.find((opt) => opt.value === value)?.label ?? '';
+
+  return (
+    <div className="flex flex-col gap-1.5" ref={rootRef}>
+      <label className="text-xs font-semibold text-emerald-100/90">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm bg-white text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-white/60"
+        >
+          <span className="truncate">{selectedLabel}</span>
+          <ChevronDown
+            className={`h-4 w-4 text-slate-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {open && (
+          <div
+            className="absolute z-50 top-full left-0 mt-1.5 w-full min-w-[206px] rounded-[10px] border border-slate-200 bg-white py-1.5 opacity-100 shadow-xl"
+          >
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-sm ${
+                  opt.value === value
+                    ? 'bg-hnx-50 text-hnx-800 font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
   organizations,
   securities,
@@ -93,8 +188,16 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<string>('ALL');
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
+  const [selectedTimeRange, setSelectedTimeRange] = useState<string>('ALL');
   const [activeTab, setActiveTab] = useState<string>(NEWS_TABS[0].key);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedBoard('ALL');
+    setSelectedGroup('ALL');
+    setSelectedTimeRange('ALL');
+  };
 
   // Chỉ hiện tin đã công bố công khai (FR-066 / §8.3): PUBLISHED + isPublic + chưa bị ẩn.
   const publicSubmissions = (submissions || []).filter(
@@ -111,6 +214,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
 
       if (selectedBoard !== 'ALL' && sec && sec.board !== selectedBoard) return false;
       if (selectedGroup !== 'ALL' && sub.newsGroupCode !== selectedGroup) return false;
+      if (!isWithinTimeRange(sub.publishedAt, selectedTimeRange)) return false;
 
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
@@ -128,8 +232,8 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
   return (
     <div className="bg-slate-50 min-h-screen text-slate-900 flex flex-col">
       {/* Hero + thanh tìm kiếm */}
-      <div className="bg-hnx-gradient text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 border-b border-emerald-900 shadow-md">
-        <div className="max-w-6xl mx-auto space-y-4">
+      <div className="bg-hnx-search-hub text-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8 border-b border-emerald-900 shadow-md">
+        <div className="max-w-7xl mx-auto space-y-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-xs">
               {lang === 'vi' ? 'Tra cứu Công bố Thông tin' : 'Corporate Disclosure Lookup'}
@@ -141,8 +245,8 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
             </p>
           </div>
 
-          <div className="max-w-3xl space-y-2">
-            <div className="flex items-stretch bg-white text-slate-900 rounded-xl shadow-lg overflow-hidden">
+          <div className="w-full space-y-2">
+            <div className="flex items-stretch bg-white text-slate-900 rounded-[12px] shadow-lg overflow-hidden h-[50px] opacity-100">
               <div className="hidden sm:flex items-center gap-1.5 px-4 border-r border-slate-200 text-slate-500 text-xs font-semibold shrink-0">
                 <Building2 className="h-3.5 w-3.5" />
                 <span>Mã CK / Công ty</span>
@@ -156,7 +260,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                     ? 'Nhập mã CK (vd: ACB, FPT) hoặc tên công ty...'
                     : 'Enter symbol (e.g. ACB, FPT) or company name...'
                 }
-                className="flex-1 min-w-0 px-3 py-3 text-sm font-medium focus:outline-none"
+                className="flex-1 min-w-0 px-3 h-full text-sm font-medium focus:outline-none"
               />
               <button
                 type="button"
@@ -170,7 +274,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
               </button>
               <button
                 type="button"
-                className="flex items-center gap-1.5 px-5 bg-hnx-gradient-horizontal text-white text-xs font-bold shrink-0"
+                className="flex items-center gap-1.5 px-5 bg-[#12573A] hover:brightness-110 text-white text-xs font-bold border-[3px] border-white rounded-[12px] shrink-0"
               >
                 <Search className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Tìm kiếm</span>
@@ -178,32 +282,51 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
             </div>
 
             {showAdvanced && (
-              <div className="flex flex-wrap gap-2 bg-[#123A0A]/60 border border-[#6FAE55]/40 rounded-xl p-3">
-                <select
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end bg-[#0B4A28] border border-[#6FAE55]/30 rounded-2xl p-4 shadow-lg">
+                <FilterSelect
+                  label="Thị trường"
                   value={selectedBoard}
-                  onChange={(e) => setSelectedBoard(e.target.value)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 font-medium"
-                >
-                  <option value="ALL">Tất cả Sàn (HNX, UPCoM, TPDN)</option>
-                  <option value="HNX">Sàn HNX</option>
-                  <option value="UPCOM">Sàn UPCoM</option>
-                  <option value="PRIVATE_BOND">Trái phiếu Riêng lẻ</option>
-                </select>
+                  onChange={setSelectedBoard}
+                  options={[
+                    { value: 'ALL', label: 'Tất cả' },
+                    { value: 'HNX', label: 'HNX' },
+                    { value: 'HOSE', label: 'HOSE' },
+                    { value: 'UPCOM', label: 'UPCoM' },
+                    { value: 'PRIVATE_BOND', label: 'Trái phiếu riêng lẻ' },
+                  ]}
+                />
 
-                <select
+                <FilterSelect
+                  label="Loại tin"
                   value={selectedGroup}
-                  onChange={(e) => setSelectedGroup(e.target.value)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white text-slate-900 font-medium"
+                  onChange={setSelectedGroup}
+                  options={[
+                    { value: 'ALL', label: 'Tất cả' },
+                    { value: 'PERIODIC', label: 'Báo cáo Định kỳ (BCTC)' },
+                    { value: 'EXTRAORDINARY', label: 'Tin Bất thường (24h/48h)' },
+                    { value: 'BOND', label: 'Tin Trái phiếu' },
+                    { value: 'TRADING', label: 'Tin Giao dịch NNB/CĐL' },
+                    { value: 'OFFERING', label: 'Tin Chào bán / Phát hành' },
+                    { value: 'ON_DEMAND', label: 'Tin theo yêu cầu' },
+                    { value: 'HNX_NEWS', label: 'Tin từ Sở HNX' },
+                  ]}
+                />
+
+                <FilterSelect
+                  label="Khoảng thời gian"
+                  value={selectedTimeRange}
+                  onChange={setSelectedTimeRange}
+                  options={TIME_RANGE_OPTIONS}
+                />
+
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="flex items-center justify-center gap-2 h-[42px] rounded-lg bg-[#7A1F2B] hover:bg-[#8f2432] text-white text-sm font-bold"
                 >
-                  <option value="ALL">Tất cả Nhóm Tin</option>
-                  <option value="PERIODIC">Báo cáo Định kỳ (BCTC)</option>
-                  <option value="EXTRAORDINARY">Tin Bất thường (24h/48h)</option>
-                  <option value="BOND">Tin Trái phiếu</option>
-                  <option value="TRADING">Tin Giao dịch NNB/CĐL</option>
-                  <option value="OFFERING">Tin Chào bán / Phát hành</option>
-                  <option value="ON_DEMAND">Tin theo yêu cầu</option>
-                  <option value="HNX_NEWS">Tin từ Sở HNX</option>
-                </select>
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Xóa bộ lọc</span>
+                </button>
               </div>
             )}
           </div>
@@ -321,7 +444,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
                   onClick={() => setActiveTab(tab.key)}
                   className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors ${
                     activeTab === tab.key
-                      ? 'bg-hnx-gradient-horizontal text-white shadow-xs'
+                      ? 'bg-[#12573A] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
@@ -425,7 +548,7 @@ export const PublicCorporateNews: React.FC<PublicCorporateNewsProps> = ({
       </div>
 
       {/* Chân trang */}
-      <footer className="bg-hnx-header text-emerald-100 mt-6">
+      <footer className="bg-hnx-footer text-emerald-100 mt-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
           <div className="space-y-2">
             <img src={hnxLogo} alt="Hanoi Stock Exchange" className="h-7 w-auto" />
