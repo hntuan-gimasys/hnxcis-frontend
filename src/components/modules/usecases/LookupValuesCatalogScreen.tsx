@@ -4,15 +4,17 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { findImsUseCaseByCode } from '../../../lib/imsRoutes';
+import { exportToCsv } from '../../../lib/exportCsv';
 import {
-  BTN_OUTLINE,
   BTN_PRIMARY,
+  CatalogPage,
+  CatalogToolbar,
+  ColumnSpec,
   ConfirmDeleteDialog,
   EmptyRow,
-  SELECT_CLASS,
   SortState,
   SortableTh,
   StatusPill,
@@ -20,9 +22,9 @@ import {
   TH_CLASS,
   TablePager,
   ToastStack,
+  useColumnVisibility,
   useToasts,
 } from './catalogUi';
-import { STATUS_OPTIONS } from './catalogTypes';
 import { useCatalogList } from './useCatalogList';
 import { LookupValueDraft, LookupValueFormModal } from './LookupValueFormModal';
 import { LookupValueRow } from './lookupValuesMock';
@@ -114,6 +116,27 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
   const [deleteTarget, setDeleteTarget] = useState<LookupValueRow | null>(null);
 
   const { toasts, pushToast } = useToasts();
+
+  /**
+   * Cột bật/tắt được trên menu `Columns`.
+   *
+   * Dựng trong component vì nhãn cột quan hệ cha do `config` quyết định ("Chức vụ
+   * cấp trên" / "Loại hình cấp trên") — hai UC dùng chung màn hình này nhưng gọi
+   * quan hệ đó bằng hai cái tên.
+   */
+  const columnSpecs: readonly ColumnSpec[] = useMemo(
+    () => [
+      { key: 'stt', label: 'STT' },
+      { key: 'code', label: 'Mã' },
+      { key: 'value', label: 'Giá trị' },
+      { key: 'parent', label: config.parentColumnLabel },
+      { key: 'description', label: 'Mô tả' },
+      { key: 'status', label: 'Trạng thái' },
+    ],
+    [config.parentColumnLabel],
+  );
+
+  const columns = useColumnVisibility(columnSpecs);
 
   /** Tra tên bản ghi cha để hiển thị — tra trong TOÀN BỘ danh mục. */
   const parentLabelOf = (parentId: number | null) => {
@@ -208,91 +231,71 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
     pushToast('danger', `Đã xóa ${config.entityLabel} “${row.value}”`);
   };
 
+  /**
+   * Xuất File — CSV có BOM UTF-8 qua `lib/exportCsv.ts`.
+   *
+   * Bảng 04 của cả hai UC không nêu nút xuất file; nút này đến từ khuôn giao diện
+   * dùng chung (file mẫu `docs/quan-ly-danh-muc_2.html`). Xuất theo
+   * `list.visibleRows` — toàn bộ kết quả lọc, không phải trang đang xem.
+   */
+  const exportRows = () => {
+    exportToCsv(
+      `danh-muc-${config.lovGroup.toLowerCase()}`,
+      [
+        { header: 'Mã', value: (r: LookupValueRow) => r.code },
+        { header: 'Giá trị', value: (r: LookupValueRow) => r.value },
+        {
+          header: config.parentColumnLabel,
+          value: (r: LookupValueRow) => parentLabelOf(r.lookupParentId) ?? '',
+        },
+        { header: 'Mô tả', value: (r: LookupValueRow) => r.description },
+        {
+          header: 'Trạng thái',
+          value: (r: LookupValueRow) => (r.statusFlg === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'),
+        },
+      ],
+      [...list.visibleRows],
+    );
+    pushToast('success', `Xuất dữ liệu thành công (${list.visibleRows.length} dòng)`);
+  };
+
   /* --------------------------------------------------------------- render */
 
-  const COL_COUNT = 7;
-
   return (
-    <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
-        <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
-
-        {/* Toolbar trên: tiêu đề trang + nút Thêm. */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#292929]">{config.heading}</h1>
-            <p className="mt-1 text-[13px] text-[#525252]">
-              {config.subtitle}
-              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
-                {UC.ucCode}
-              </span>
-              {/*
-                Hiện LOV_GROUP ngay trên màn hình: đây là danh mục dùng chung bảng
-                LOOKUP_VALUES với nhiều nhóm khác, nên biết mình đang xem nhóm nào
-                là thông tin cần thiết chứ không phải chi tiết kỹ thuật.
-              */}
-              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
-                LOV_GROUP = {config.lovGroup}
-              </span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setFormTarget({ row: null })}
-            className={`${BTN_PRIMARY} shrink-0`}
-          >
+    <>
+      <CatalogPage
+        breadcrumb={UC.breadcrumb}
+        heading={config.heading}
+        subtitle={
+          <>
+            {config.subtitle}
+            {/*
+              Hiện LOV_GROUP ngay trên màn hình: đây là danh mục dùng chung bảng
+              LOOKUP_VALUES với nhiều nhóm khác, nên biết mình đang xem nhóm nào
+              là thông tin cần thiết chứ không phải chi tiết kỹ thuật.
+            */}
+            <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
+              LOV_GROUP = {config.lovGroup}
+            </span>
+          </>
+        }
+        actions={
+          <button type="button" onClick={() => setFormTarget({ row: null })} className={BTN_PRIMARY}>
             <Plus className="h-4 w-4" />
             Thêm
           </button>
-        </div>
-
-        {/* Hàng bộ lọc: từ khóa (CODE/VALUE/DESCRIPTION) + trạng thái + hai nút. */}
-        <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:max-w-85">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
-            <input
-              type="text"
-              value={list.draftKeyword}
-              onChange={(e) => list.setDraftKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') list.applySearch();
-              }}
-              placeholder={config.searchPlaceholder}
-              aria-label="Từ khóa tìm kiếm"
-              className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
-            />
-          </div>
-
-          <select
-            value={String(list.draftStatus)}
-            onChange={(e) =>
-              list.setDraftStatus(
-                e.target.value === 'all' ? 'all' : (Number(e.target.value) as 0 | 1),
-              )
-            }
-            aria-label="Lọc theo trạng thái"
-            className={`${SELECT_CLASS} w-auto`}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
-          <button type="button" onClick={list.applySearch} className={BTN_PRIMARY}>
-            <Search className="h-4 w-4" />
-            Tìm kiếm
-          </button>
-
-          <button type="button" onClick={list.resetFilters} className={BTN_OUTLINE}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
-          </button>
-        </div>
+        }
+      >
+        <CatalogToolbar
+          keyword={list.draftKeyword}
+          onKeyword={list.setDraftKeyword}
+          onSearch={list.applySearch}
+          searchPlaceholder={config.searchPlaceholder}
+          status={list.draftStatus}
+          onStatus={list.applyStatus}
+          columns={columns}
+          onExport={exportRows}
+        />
 
         {/* Bảng danh sách — bốn cột theo Bảng 04, thêm Trạng thái và Cấp trên. */}
         <div className="overflow-x-auto">
@@ -300,29 +303,41 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
             <thead>
               <tr>
                 {/* Bảng 04: STT "Hiển thị căn giữa". */}
-                <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
-                  STT
-                </th>
-                <SortableTh label="Mã" sortKey="code" sort={list.sort} onSort={list.changeSort} />
-                <SortableTh
-                  label="Giá trị"
-                  sortKey="value"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
+                {columns.isVisible('stt') && (
+                  <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
+                    STT
+                  </th>
+                )}
+                {columns.isVisible('code') && (
+                  <SortableTh label="Mã" sortKey="code" sort={list.sort} onSort={list.changeSort} />
+                )}
+                {columns.isVisible('value') && (
+                  <SortableTh
+                    label="Giá trị"
+                    sortKey="value"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
                 {/*
                   Mô tả và Trạng thái KHÔNG sắp xếp được: Bảng 04 chỉ cho phép
                   "sort tại các cột: Mã; Giá trị". Khác với IMS-002/003/004/006.
                 */}
-                <th scope="col" className={TH_CLASS}>
-                  {config.parentColumnLabel}
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Mô tả
-                </th>
-                <th scope="col" className={TH_CLASS}>
-                  Trạng thái
-                </th>
+                {columns.isVisible('parent') && (
+                  <th scope="col" className={TH_CLASS}>
+                    {config.parentColumnLabel}
+                  </th>
+                )}
+                {columns.isVisible('description') && (
+                  <th scope="col" className={TH_CLASS}>
+                    Mô tả
+                  </th>
+                )}
+                {columns.isVisible('status') && (
+                  <th scope="col" className={TH_CLASS}>
+                    Trạng thái
+                  </th>
+                )}
                 <th scope="col" className={TH_CLASS}>
                   Hành động
                 </th>
@@ -333,7 +348,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
               {list.pageRows.length === 0 ? (
                 /* Bảng 04: thông báo rỗng là "Không có dữ liệu" / "No data". */
                 <EmptyRow
-                  colSpan={COL_COUNT}
+                  colSpan={columns.visibleCount + 1}
                   title="Không có dữ liệu"
                   hint="Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm"
                 />
@@ -343,29 +358,39 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
 
                   return (
                     <tr key={row.id} className="hover:bg-[#F8FAFC]">
-                      <td className={`${TD_CLASS} text-center text-slate-500`}>
-                        {list.startIdx + idx + 1}
-                      </td>
+                      {columns.isVisible('stt') && (
+                        <td className={`${TD_CLASS} text-center text-slate-500`}>
+                          {list.startIdx + idx + 1}
+                        </td>
+                      )}
 
-                      <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.code}</td>
+                      {columns.isVisible('code') && (
+                        <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.code}</td>
+                      )}
 
-                      <td className={TD_CLASS}>{row.value}</td>
+                      {columns.isVisible('value') && <td className={TD_CLASS}>{row.value}</td>}
 
-                      <td className={TD_CLASS}>
-                        {parentLabel ?? <span className="text-slate-400">—</span>}
-                      </td>
+                      {columns.isVisible('parent') && (
+                        <td className={TD_CLASS}>
+                          {parentLabel ?? <span className="text-slate-400">—</span>}
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>
-                        {row.description ? (
-                          row.description
-                        ) : (
-                          <span className="text-slate-400">Chưa có mô tả</span>
-                        )}
-                      </td>
+                      {columns.isVisible('description') && (
+                        <td className={TD_CLASS}>
+                          {row.description ? (
+                            row.description
+                          ) : (
+                            <span className="text-slate-400">Chưa có mô tả</span>
+                          )}
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>
-                        <StatusPill active={row.statusFlg === 1} />
-                      </td>
+                      {columns.isVisible('status') && (
+                        <td className={TD_CLASS}>
+                          <StatusPill active={row.statusFlg === 1} />
+                        </td>
+                      )}
 
                       <td className={`${TD_CLASS} whitespace-nowrap`}>
                         <button
@@ -404,7 +429,7 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
           onPage={list.setPage}
           onPageSize={list.changePageSize}
         />
-      </div>
+      </CatalogPage>
 
       {formTarget && (
         <LookupValueFormModal
@@ -429,6 +454,6 @@ export const LookupValuesCatalogScreen: React.FC<{ config: LookupCatalogConfig }
       )}
 
       <ToastStack toasts={toasts} />
-    </div>
+    </>
   );
 };

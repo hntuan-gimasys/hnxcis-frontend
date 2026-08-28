@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Filter,
   Lock,
+  LogOut,
   Building2,
   Scale,
   Gavel,
@@ -56,14 +57,24 @@ import {
   Briefcase,
 } from 'lucide-react';
 
+/** Hai chữ cái đầu của tên, cho avatar tròn ở chân sidebar. */
+function initialsOf(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 /** Nhóm menu khai báo bằng dữ liệu; `Icon` là component nên viết hoa đầu. */
 interface NavItem {
   readonly code: string;
   readonly label: string;
   readonly Icon: React.ComponentType<{ className?: string }>;
 }
-import { UserRoleCode } from '../../types/hnx';
+import { UserAccount, UserRoleCode } from '../../types/hnx';
 import { IMS_USE_CASES } from '../../lib/imsRoutes';
+import { getRoleLabel } from '../../data/roleCatalog';
+import hnxLogo from '../../assets/hnx-logo.png';
 
 /**
  * Icon cho bảy chức năng có SRS ở khối "Quản lý Danh mục" của cổng IMS.
@@ -165,6 +176,13 @@ interface SidebarProps {
   /** Drawer trên mobile: dưới md sidebar không nằm trong luồng trang. */
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  /**
+   * Người đang đăng nhập — chỉ dùng cho card ở chân sidebar /ims. Không truyền ở
+   * /icds: cổng đó vào tự do, không có phiên đăng nhập nào để hiển thị.
+   */
+  currentUser?: UserAccount;
+  /** Đăng xuất khỏi /ims; nút chỉ hiện khi có hàm này. */
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -174,6 +192,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activePortal,
   mobileOpen = false,
   onCloseMobile,
+  currentUser,
+  onLogout,
 }) => {
   /**
    * Nhóm "Quản lý Danh mục" mở sẵn — đó là toàn bộ nội dung menu /ims hiện tại,
@@ -219,6 +239,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     'fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200',
     mobileOpen ? 'translate-x-0' : '-translate-x-full',
     'md:static md:translate-x-0 md:z-auto md:overflow-visible',
+  ].join(' ');
+
+  /**
+   * Sidebar /ims cao hết trang và chia ba tầng: logo (cố định), menu (cuộn), card
+   * người dùng (cố định) — đúng `.sidebar` của `docs/quan-ly-danh-muc_2.html`.
+   * Vì vậy nó là `flex flex-col` và KHÔNG tự cuộn ở cấp ngoài; phần cuộn nằm ở
+   * `<nav>` bên trong, nếu không card ở chân sẽ trôi lên khi menu dài.
+   *
+   * `asideClass` bên trên giữ nguyên cho /icds — cổng đó vẫn là một cột cuộn
+   * thẳng như trước.
+   */
+  const asideClassInternal = [
+    `w-64 ${asideSkin} shrink-0 flex flex-col`,
+    'fixed inset-y-0 left-0 z-50 transition-transform duration-200',
+    mobileOpen ? 'translate-x-0' : '-translate-x-full',
+    'md:sticky md:top-0 md:h-screen md:translate-x-0 md:z-auto',
   ].join(' ');
 
   const backdrop = mobileOpen ? (
@@ -331,24 +367,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
     {backdrop}
-    <aside className={asideClass}>
-      <div className="p-4 border-b border-[#004D28] flex items-start justify-between gap-2">
-        <div>
-          <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
-            IMS — Quản lý &amp; Khai thác thông tin
-          </div>
-          <div className="text-sm font-bold text-white mt-1">Cổng Nội bộ HNX</div>
-        </div>
+    <aside className={asideClassInternal}>
+      {/*
+        Logo HNX ở ĐẦU SIDEBAR (nền xanh) thay cho khối chữ "IMS — Cổng Nội bộ
+        HNX" trước đây, theo `.sidebar-logo` của file mẫu.
+
+        Dùng `hnx-logo.png` — bản chữ TRẮNG trên nền trong suốt. Trên nền
+        gradient xanh của sidebar nó đọc rõ; bản `hnx-logo-dark.png` thì không.
+        Ảnh đã mang tên hệ thống song ngữ nên không cần thêm dòng chữ nào.
+      */}
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/15 px-4">
+        <img
+          src={hnxLogo}
+          alt="Sở Giao dịch Chứng khoán Hà Nội — Hanoi Stock Exchange"
+          className="h-7 w-auto shrink-0"
+        />
         <button
           onClick={onCloseMobile}
           aria-label="Đóng menu"
-          className="md:hidden p-1 text-white/70 hover:text-white shrink-0"
+          className="shrink-0 p-1 text-white/70 hover:text-white md:hidden"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <nav className="p-3 space-y-6 text-xs overflow-y-auto max-h-[calc(100vh-5rem)]">
+      <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto p-3 text-xs">
         {/*
           Khối chức năng đã có SRS (docs/srs/) — cấu trúc menu lấy theo file mẫu
           docs/quan-ly-danh-muc_2.html: một nhãn nhóm không bấm được ("Quản lý hệ
@@ -719,6 +762,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </>
         )}
       </nav>
+
+      {/*
+        Card người dùng ở chân sidebar — `.sidebar-footer` của file mẫu.
+
+        Đây cũng là chỗ duy nhất còn nút Đăng xuất: thanh trên đã bỏ khối danh
+        tính, và để hai chỗ cùng làm một việc thì chỉ tạo thêm chỗ để lệch nhau.
+      */}
+      {currentUser && (
+        <div className="flex shrink-0 items-center gap-2.5 border-t border-white/15 px-4 py-3.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold text-white">
+            {initialsOf(currentUser.fullName)}
+          </div>
+
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="truncate text-[12.5px] font-medium text-white">
+              {currentUser.fullName}
+            </div>
+            {/*
+              Dòng phụ là EMAIL, không phải tên vai trò: card này để người dùng
+              nhận ra mình đang đăng nhập bằng tài khoản nào — vai trò đã lộ ra qua
+              chính các mục menu đang thấy. Tài khoản mock có thể chưa có email nên
+              rơi về nhãn vai trò.
+            */}
+            <div className="truncate text-[11px] text-white/70">
+              {currentUser.email || getRoleLabel(currentUser.roleCode)}
+            </div>
+          </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              aria-label="Đăng xuất"
+              title="Đăng xuất khỏi cổng nội bộ"
+              className="shrink-0 rounded-md p-1.5 text-white/80 hover:bg-white/10 hover:text-white"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
     </aside>
     </>
   );

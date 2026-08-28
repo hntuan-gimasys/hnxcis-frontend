@@ -4,15 +4,17 @@
  */
 
 import React, { useState } from 'react';
-import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { findImsUseCaseByCode } from '../../../lib/imsRoutes';
+import { exportToCsv } from '../../../lib/exportCsv';
 import {
-  BTN_OUTLINE,
   BTN_PRIMARY,
+  CatalogPage,
+  CatalogToolbar,
+  ColumnSpec,
   ConfirmDeleteDialog,
   EmptyRow,
-  SELECT_CLASS,
   SortState,
   SortableTh,
   StatusPill,
@@ -20,9 +22,9 @@ import {
   TH_CLASS,
   TablePager,
   ToastStack,
+  useColumnVisibility,
   useToasts,
 } from './catalogUi';
-import { STATUS_OPTIONS } from './catalogTypes';
 import { useCatalogList } from './useCatalogList';
 import { DepartmentDraft, Ims006DepartmentFormModal } from './Ims006DepartmentFormModal';
 import { DepartmentRow, INITIAL_DEPARTMENTS } from './ims006DepartmentMock';
@@ -68,6 +70,16 @@ const searchFields = (row: DepartmentRow) => [
   row.description,
 ];
 
+/** Cột bật/tắt được trên menu `Columns`; nhãn theo file mẫu. */
+const COLUMNS: readonly ColumnSpec[] = [
+  { key: 'stt', label: 'STT' },
+  { key: 'code', label: 'Mã' },
+  { key: 'name', label: 'Giá trị' },
+  { key: 'order', label: 'Thứ tự' },
+  { key: 'description', label: 'Mô tả' },
+  { key: 'status', label: 'Trạng thái' },
+];
+
 export const Ims006PhongBanView: React.FC = () => {
   const [departments, setDepartments] = useState<DepartmentRow[]>(() => [...INITIAL_DEPARTMENTS]);
 
@@ -83,6 +95,8 @@ export const Ims006PhongBanView: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<DepartmentRow | null>(null);
 
   const { toasts, pushToast } = useToasts();
+
+  const columns = useColumnVisibility(COLUMNS);
 
   /* ------------------------------------------------------------- thao tác */
 
@@ -145,122 +159,105 @@ export const Ims006PhongBanView: React.FC = () => {
     pushToast('danger', `Đã xóa phòng ban “${row.deptNameVn}”`);
   };
 
-  /* --------------------------------------------------------------- render */
+  /**
+   * Xuất File — CSV có BOM UTF-8, xuất toàn bộ kết quả lọc (`list.visibleRows`)
+   * chứ không phải trang đang xem.
+   */
+  const exportRows = () => {
+    exportToCsv(
+      'danh-muc-phong-ban',
+      [
+        { header: 'Mã', value: (r: DepartmentRow) => r.deptCd },
+        { header: 'Tên (VN)', value: (r: DepartmentRow) => r.deptNameVn },
+        { header: 'Tên (EN)', value: (r: DepartmentRow) => r.deptNameEn },
+        { header: 'Thứ tự', value: (r: DepartmentRow) => r.displayOrderNumber ?? '' },
+        { header: 'Mô tả', value: (r: DepartmentRow) => r.description },
+        {
+          header: 'Trạng thái',
+          value: (r: DepartmentRow) => (r.statusFlg === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'),
+        },
+      ],
+      [...list.visibleRows],
+    );
+    pushToast('success', `Xuất dữ liệu thành công (${list.visibleRows.length} dòng)`);
+  };
 
-  const COL_COUNT = 7;
+  /* -------------------------------------------------------------- render */
 
   return (
-    <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
-        <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
-
-        {/* Toolbar trên: tiêu đề trang + nút Thêm mới. */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#292929]">Phòng ban</h1>
-            <p className="mt-1 text-[13px] text-[#525252]">
-              Quản lý danh sách và tạo mới phòng ban
-              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
-                {UC.ucCode}
-              </span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setFormTarget({ row: null })}
-            className={`${BTN_PRIMARY} shrink-0`}
-          >
+    <>
+      <CatalogPage
+        breadcrumb={UC.breadcrumb}
+        heading="Phòng ban"
+        subtitle="Quản lý danh sách và tạo mới phòng ban"
+        actions={
+          <button type="button" onClick={() => setFormTarget({ row: null })} className={BTN_PRIMARY}>
             <Plus className="h-4 w-4" />
             Thêm mới
           </button>
-        </div>
+        }
+      >
+        <CatalogToolbar
+          keyword={list.draftKeyword}
+          onKeyword={list.setDraftKeyword}
+          onSearch={list.applySearch}
+          searchPlaceholder="Tìm kiếm Mã, Giá trị..."
+          status={list.draftStatus}
+          onStatus={list.applyStatus}
+          columns={columns}
+          onExport={exportRows}
+        />
 
-        {/* Hàng bộ lọc: ô tìm kiếm + trạng thái + Tìm kiếm + Làm mới. */}
-        <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:max-w-85">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
-            <input
-              type="text"
-              value={list.draftKeyword}
-              onChange={(e) => list.setDraftKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') list.applySearch();
-              }}
-              placeholder="Tìm kiếm Mã, Tên phòng ban..."
-              aria-label="Từ khóa tìm kiếm"
-              className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
-            />
-          </div>
-
-          <select
-            value={String(list.draftStatus)}
-            onChange={(e) =>
-              list.setDraftStatus(
-                e.target.value === 'all' ? 'all' : (Number(e.target.value) as 0 | 1),
-              )
-            }
-            aria-label="Lọc theo trạng thái"
-            className={`${SELECT_CLASS} w-auto`}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
-          <button type="button" onClick={list.applySearch} className={BTN_PRIMARY}>
-            <Search className="h-4 w-4" />
-            Tìm kiếm
-          </button>
-
-          <button type="button" onClick={list.resetFilters} className={BTN_OUTLINE}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
-          </button>
-        </div>
-
-        {/* Bảng danh sách — cột theo SRS Bảng 04, thêm cột Thứ tự hiển thị (§4.1). */}
+        {/* Bảng danh sách — cột theo SRS Bảng 04, thêm cột Thứ tự (§4.1). */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th scope="col" className={`${TH_CLASS} w-15`}>
-                  STT
-                </th>
-                <SortableTh
-                  label="Mã Phòng ban"
-                  sortKey="deptCd"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Tên Phòng ban"
-                  sortKey="deptName"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Thứ tự hiển thị"
-                  sortKey="displayOrderNumber"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Mô tả"
-                  sortKey="description"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Trạng thái"
-                  sortKey="statusFlg"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
+                {columns.isVisible('stt') && (
+                  <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
+                    STT
+                  </th>
+                )}
+                {columns.isVisible('code') && (
+                  <SortableTh
+                    label="Mã"
+                    sortKey="deptCd"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('name') && (
+                  <SortableTh
+                    label="Giá trị"
+                    sortKey="deptName"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('order') && (
+                  <SortableTh
+                    label="Thứ tự"
+                    sortKey="displayOrderNumber"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('description') && (
+                  <SortableTh
+                    label="Mô tả"
+                    sortKey="description"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('status') && (
+                  <SortableTh
+                    label="Trạng thái"
+                    sortKey="statusFlg"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
                 <th scope="col" className={TH_CLASS}>
                   Hành động
                 </th>
@@ -270,42 +267,56 @@ export const Ims006PhongBanView: React.FC = () => {
             <tbody>
               {list.pageRows.length === 0 ? (
                 <EmptyRow
-                  colSpan={COL_COUNT}
+                  colSpan={columns.visibleCount + 1}
                   title="Không tìm thấy dữ liệu"
                   hint="Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm"
                 />
               ) : (
                 list.pageRows.map((row, idx) => (
                   <tr key={row.id} className="hover:bg-[#F8FAFC]">
-                    <td className={`${TD_CLASS} text-slate-500`}>{list.startIdx + idx + 1}</td>
+                    {columns.isVisible('stt') && (
+                      <td className={`${TD_CLASS} text-center text-slate-500`}>
+                        {list.startIdx + idx + 1}
+                      </td>
+                    )}
 
-                    <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.deptCd}</td>
+                    {columns.isVisible('code') && (
+                      <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.deptCd}</td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      <div>{row.deptNameVn}</div>
-                      {/*
-                        SRS Bảng 04 chỉ có một cột "Tên Phòng ban" nhưng CSDL lưu
-                        cả tên VN và EN. Hiện tên EN thành dòng phụ; tên EN được
-                        phép để trống nên hiện "—" khi rỗng.
-                      */}
-                      <div className="text-xs text-slate-500">{row.deptNameEn || '—'}</div>
-                    </td>
+                    {columns.isVisible('name') && (
+                      <td className={TD_CLASS}>
+                        <div>{row.deptNameVn}</div>
+                        {/*
+                          SRS Bảng 04 chỉ có một cột "Tên Phòng ban" nhưng CSDL lưu
+                          cả tên VN và EN. Hiện tên EN thành dòng phụ; tên EN được
+                          phép để trống nên hiện "—" khi rỗng.
+                        */}
+                        <div className="text-xs text-slate-500">{row.deptNameEn || '—'}</div>
+                      </td>
+                    )}
 
-                    <td className={`${TD_CLASS} whitespace-nowrap`}>
-                      {row.displayOrderNumber ?? <span className="text-slate-400">—</span>}
-                    </td>
+                    {columns.isVisible('order') && (
+                      <td className={`${TD_CLASS} whitespace-nowrap`}>
+                        {row.displayOrderNumber ?? <span className="text-slate-400">—</span>}
+                      </td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      {row.description ? (
-                        row.description
-                      ) : (
-                        <span className="text-slate-400">Chưa có mô tả</span>
-                      )}
-                    </td>
+                    {columns.isVisible('description') && (
+                      <td className={TD_CLASS}>
+                        {row.description ? (
+                          row.description
+                        ) : (
+                          <span className="text-slate-400">Chưa có mô tả</span>
+                        )}
+                      </td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      <StatusPill active={row.statusFlg === 1} />
-                    </td>
+                    {columns.isVisible('status') && (
+                      <td className={TD_CLASS}>
+                        <StatusPill active={row.statusFlg === 1} />
+                      </td>
+                    )}
 
                     <td className={`${TD_CLASS} whitespace-nowrap`}>
                       <button
@@ -343,7 +354,7 @@ export const Ims006PhongBanView: React.FC = () => {
           onPage={list.setPage}
           onPageSize={list.changePageSize}
         />
-      </div>
+      </CatalogPage>
 
       {formTarget && (
         <Ims006DepartmentFormModal
@@ -366,6 +377,6 @@ export const Ims006PhongBanView: React.FC = () => {
       )}
 
       <ToastStack toasts={toasts} />
-    </div>
+    </>
   );
 };

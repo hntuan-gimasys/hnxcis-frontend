@@ -10,11 +10,17 @@ import {
   ArrowUp,
   ArrowUpDown,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Download,
   Inbox,
+  Search,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
+
+import { Flag, STATUS_OPTIONS } from './catalogTypes';
 
 /**
  * Các thành phần giao diện dùng chung cho màn hình quản lý danh mục.
@@ -183,6 +189,282 @@ export const EmptyRow: React.FC<{ colSpan: number; title: string; hint: string }
       </div>
     </td>
   </tr>
+);
+
+/* --------------------------------------------------- hiển thị / ẩn cột */
+
+/**
+ * Một cột có thể bật/tắt trên menu `Columns` của thanh công cụ.
+ *
+ * `key` là khóa nội bộ do màn hình tự đặt (không nhất thiết trùng khóa sắp xếp);
+ * `label` là nhãn hiện trên menu, nên viết y như nhãn trên đầu bảng để người
+ * dùng nhận ra mình đang tắt cột nào.
+ */
+export interface ColumnSpec {
+  readonly key: string;
+  readonly label: string;
+}
+
+export interface ColumnVisibility {
+  readonly specs: readonly ColumnSpec[];
+  readonly isVisible: (key: string) => boolean;
+  /** Số cột dữ liệu đang hiện — dùng cho `colSpan` của dòng "không có dữ liệu". */
+  readonly visibleCount: number;
+  readonly toggle: (key: string) => void;
+  readonly showAll: () => void;
+}
+
+/**
+ * Trạng thái ẩn/hiện cột của MỘT bảng.
+ *
+ * Chỉ là chuyện trình bày: cột bị ẩn vẫn nằm trong dữ liệu, vẫn được tìm kiếm và
+ * vẫn ra file khi bấm Xuất File — người dùng ẩn cột để đọc bảng cho gọn, không
+ * phải để loại dữ liệu.
+ *
+ * Không lưu xuống localStorage: file mẫu cũng chỉ giữ trong phiên, và lưu lại sẽ
+ * làm người dùng mở màn hình lần sau thấy thiếu cột mà không hiểu vì sao.
+ */
+export function useColumnVisibility(specs: readonly ColumnSpec[]): ColumnVisibility {
+  const [hidden, setHidden] = useState<readonly string[]>([]);
+
+  const isVisible = useCallback((key: string) => !hidden.includes(key), [hidden]);
+
+  return {
+    specs,
+    isVisible,
+    visibleCount: specs.filter((c) => isVisible(c.key)).length,
+    toggle: (key: string) =>
+      setHidden((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key])),
+    showAll: () => setHidden([]),
+  };
+}
+
+/**
+ * Nút `Columns` + menu tick chọn cột, đúng như `.columns-menu` của file mẫu.
+ *
+ * Cột cuối cùng còn hiện thì bị chặn không cho tắt: một bảng chỉ còn cột "Hành
+ * động" là một bảng vô nghĩa.
+ */
+export const ColumnsButton: React.FC<{ columns: ColumnVisibility }> = ({ columns }) => {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Bấm ra ngoài hoặc Esc thì đóng — menu này không có lớp phủ nên nếu không tự
+  // đóng, nó sẽ nằm chắn trên bảng suốt cả phiên làm việc.
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={BTN_OUTLINE}
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+        Columns
+        <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-30 mt-1.5 max-h-80 w-55 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+          <div className="px-2 pt-1.5 pb-1 text-xs font-semibold text-slate-500">Hiển thị cột</div>
+
+          {columns.specs.map((col) => {
+            const shown = columns.isVisible(col.key);
+            return (
+              <label
+                key={col.key}
+                className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-[#292929] hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={shown}
+                  disabled={shown && columns.visibleCount <= 1}
+                  onChange={() => columns.toggle(col.key)}
+                  className="h-3.5 w-3.5 cursor-pointer accent-[#008A4B]"
+                />
+                {col.label}
+              </label>
+            );
+          })}
+
+          <div className="mx-1 my-1.5 h-px bg-slate-200" />
+          <button
+            type="button"
+            onClick={columns.showAll}
+            className="w-full rounded-md px-2 py-1.5 text-left text-[12.5px] text-[#525252] hover:bg-slate-50 hover:text-[#292929]"
+          >
+            Hiển thị tất cả
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* --------------------------------------------------------- thanh công cụ */
+
+/** Giá trị của ô lọc trạng thái; `'all'` là không lọc. */
+export type StatusValue = 'all' | Flag;
+
+interface CatalogToolbarProps {
+  /**
+   * Ô từ khóa. Bỏ trống ba prop này khi màn hình không dùng một ô tìm kiếm gộp
+   * (IMS-015 có sáu tiêu chí riêng thay cho nó).
+   */
+  keyword?: string;
+  onKeyword?: (value: string) => void;
+  searchPlaceholder?: string;
+  /** Chạy tìm kiếm — gọi khi nhấn Enter hoặc bấm vào kính lúp. */
+  onSearch?: () => void;
+  /** Ô lọc trạng thái. Đổi là lọc ngay, không cần bấm thêm nút nào. */
+  status: StatusValue;
+  onStatus: (value: StatusValue) => void;
+  columns: ColumnVisibility;
+  onExport: () => void;
+  /** Bộ lọc riêng của màn hình, xếp cùng hàng bên trái (VD: Tỉnh/Thành). */
+  children?: React.ReactNode;
+}
+
+/**
+ * Một hàng ngang duy nhất: bộ lọc dồn bên trái, `Columns` và `Xuất File` dồn bên
+ * phải — theo `.filters-row` của `docs/quan-ly-danh-muc_2.html`.
+ *
+ * KHÔNG còn hai nút "Tìm kiếm" / "Làm mới" như bản trước. Luật của SRS ("danh
+ * sách chỉ lọc lại khi bấm Tìm kiếm hoặc Enter") vẫn giữ nguyên cho ô từ khóa:
+ * gõ dở dang không làm bảng nhảy, Enter hoặc bấm kính lúp mới lọc. Riêng các ô
+ * chọn (trạng thái, cấp cha) lọc ngay khi đổi, vì một dropdown không có trạng
+ * thái "đang gõ dở" để phải chờ.
+ */
+export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
+  keyword,
+  onKeyword,
+  searchPlaceholder,
+  onSearch,
+  status,
+  onStatus,
+  columns,
+  onExport,
+  children,
+}) => (
+  <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5">
+    <div className="flex flex-1 flex-wrap items-center gap-2.5">
+      {keyword !== undefined && onKeyword && (
+        <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-[#F9FAFB] px-3 sm:max-w-85">
+          <button
+            type="button"
+            onClick={onSearch}
+            aria-label="Tìm kiếm"
+            title="Tìm kiếm (Enter)"
+            className="shrink-0 text-slate-400 hover:text-[#008A4B]"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => onKeyword(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSearch?.();
+            }}
+            placeholder={searchPlaceholder}
+            aria-label="Từ khóa tìm kiếm"
+            className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
+          />
+        </div>
+      )}
+
+      {children}
+
+      <select
+        value={String(status)}
+        onChange={(e) =>
+          onStatus(e.target.value === 'all' ? 'all' : (Number(e.target.value) as Flag))
+        }
+        aria-label="Lọc theo trạng thái"
+        className={`${SELECT_CLASS} w-auto`}
+      >
+        <option value="all">Tất cả trạng thái</option>
+        {STATUS_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="flex shrink-0 items-center gap-2.5">
+      <ColumnsButton columns={columns} />
+
+      <button type="button" onClick={onExport} className={BTN_OUTLINE}>
+        <Download className="h-4 w-4" />
+        Xuất File
+      </button>
+    </div>
+  </div>
+);
+
+/* --------------------------------------------------------- khung màn hình */
+
+interface CatalogPageProps {
+  /** Đường dẫn màn hình theo SRS §2.1. */
+  breadcrumb: string;
+  heading: string;
+  /** Câu mô tả dưới tiêu đề. Nhận ReactNode để màn hình gắn thêm chip kỹ thuật. */
+  subtitle: React.ReactNode;
+  /** Nút hành động chính của màn hình (Thêm mới, Import...). */
+  actions: React.ReactNode;
+  children: React.ReactNode;
+}
+
+/**
+ * Khung chung của bảy màn hình danh mục: đệm `p-6`, thẻ trắng bo góc `rounded-xl`,
+ * breadcrumb, rồi hàng tiêu đề + nút hành động.
+ *
+ * Trước đây bảy màn hình tự dựng lại đúng bộ này — bảy chỗ để lệch đệm, lệch bo
+ * góc và lệch cỡ chữ tiêu đề.
+ */
+export const CatalogPage: React.FC<CatalogPageProps> = ({
+  breadcrumb,
+  heading,
+  subtitle,
+  actions,
+  children,
+}) => (
+  <div className="p-6">
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <nav className="mb-4 text-xs text-slate-500">{breadcrumb}</nav>
+
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#292929]">{heading}</h1>
+          <p className="mt-1 text-[13px] text-[#525252]">{subtitle}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">{actions}</div>
+      </div>
+
+      {children}
+    </div>
+  </div>
 );
 
 /* -------------------------------------------------------------- phân trang */

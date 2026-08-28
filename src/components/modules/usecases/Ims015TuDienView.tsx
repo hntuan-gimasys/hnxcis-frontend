@@ -4,13 +4,16 @@
  */
 
 import React, { useMemo, useState } from 'react';
-import { Download, Pencil, Plus, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
+import { Pencil, Plus, Trash2, Upload } from 'lucide-react';
 
 import { findImsUseCaseByCode } from '../../../lib/imsRoutes';
 import { exportToCsv } from '../../../lib/exportCsv';
 import {
   BTN_OUTLINE,
   BTN_PRIMARY,
+  CatalogPage,
+  CatalogToolbar,
+  ColumnSpec,
   ConfirmDeleteDialog,
   EmptyRow,
   INPUT_CLASS,
@@ -22,9 +25,9 @@ import {
   TH_CLASS,
   TablePager,
   ToastStack,
+  useColumnVisibility,
   useToasts,
 } from './catalogUi';
-import { STATUS_OPTIONS } from './catalogTypes';
 import { useCatalogList } from './useCatalogList';
 import { DictionaryDraft, Ims015DictionaryFormModal } from './Ims015DictionaryFormModal';
 import {
@@ -137,6 +140,24 @@ export function matchesCriteria(row: LookupValueRow, c: DictionaryCriteria): boo
  */
 const searchFields = () => [] as readonly string[];
 
+/**
+ * Cột bật/tắt được trên menu `Columns`.
+ *
+ * Thứ tự lấy đúng theo bảng "Từ điển" của file mẫu
+ * `docs/quan-ly-danh-muc_2.html`: Loại đứng trước Mã, vì màn hình này quản lý
+ * mọi `LOV_GROUP` nên nhóm là thứ người dùng định vị bản ghi bằng trước tiên.
+ */
+const COLUMNS: readonly ColumnSpec[] = [
+  { key: 'stt', label: 'STT' },
+  { key: 'lovGroup', label: 'Loại' },
+  { key: 'code', label: 'Mã' },
+  { key: 'value', label: 'Giá trị' },
+  { key: 'order', label: 'Thứ tự' },
+  { key: 'parent', label: 'Loại cha' },
+  { key: 'description', label: 'Mô tả' },
+  { key: 'status', label: 'Trạng thái' },
+];
+
 export const Ims015TuDienView: React.FC = () => {
   const [rows, setRows] = useState<LookupValueRow[]>(() => [...ALL_DICTIONARY_ROWS]);
 
@@ -166,6 +187,8 @@ export const Ims015TuDienView: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<LookupValueRow | null>(null);
 
   const { toasts, pushToast } = useToasts();
+
+  const columns = useColumnVisibility(COLUMNS);
 
   /** Tra nhãn bản ghi cha để hiển thị — tra trong TOÀN BỘ bảng. */
   const parentLabelOf = (parentId: number | null) => {
@@ -204,9 +227,13 @@ export const Ims015TuDienView: React.FC = () => {
   };
 
   /**
+   * Bỏ hết sáu tiêu chí và các điều kiện của hook.
+   *
    * "Làm mới" KHÔNG có trong Bảng 05 (chỉ có Thêm, Sửa, Xóa, Tìm kiếm, Import,
-   * Export). Vẫn giữ vì màn hình này có sáu ô lọc — xóa tay từng ô là việc vô ích,
-   * và sáu màn hình danh mục còn lại đều có nút này.
+   * Export) và thanh công cụ theo file mẫu cũng không có nút này, nên hàm hiện
+   * không có chỗ gọi. Giữ lại: đây là chỗ duy nhất biết phải đặt lại cả sáu tiêu
+   * chí lẫn điều kiện của hook cùng lúc, và một màn hình sáu ô lọc thì sớm muộn
+   * cũng cần lối xóa nhanh.
    */
   const resetFilters = () => {
     setDraftCriteria(EMPTY_CRITERIA);
@@ -302,7 +329,7 @@ export const Ims015TuDienView: React.FC = () => {
    * Bảng 05 yêu cầu "Export Excel". Repo chưa có thư viện .xlsx nào, và theo
    * CLAUDE.md việc kết xuất .xlsx đúng định dạng là phần việc của Report Engine ở
    * backend. Ở đây xuất CSV có BOM UTF-8 qua `lib/exportCsv.ts` — Excel mở trực
-   * tiếp và đúng tiếng Việt — nên nhãn nút ghi rõ là CSV để không hứa quá.
+   * tiếp và đúng tiếng Việt.
    *
    * Xuất theo `scopedRows` (đã lọc, chưa cắt trang) chứ không phải trang hiện
    * tại: người dùng bấm Export sau khi lọc là muốn cả kết quả lọc.
@@ -326,34 +353,28 @@ export const Ims015TuDienView: React.FC = () => {
 
   /* --------------------------------------------------------------- render */
 
-  const COL_COUNT = 9;
-
   return (
-    <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
-        <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
-
-        {/* Toolbar trên: tiêu đề + Import/Export + Thêm (Bảng 05). */}
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#292929]">Từ điển dữ liệu</h1>
-            <p className="mt-1 text-[13px] text-[#525252]">
-              Quản lý và khai báo dữ liệu từ điển cho toàn bộ hệ thống
-              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
-                {UC.ucCode}
-              </span>
-              <span className="ml-1.5 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
-                {DICTIONARY_GROUPS.length} nhóm LOV_GROUP
-              </span>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
+    <>
+      <CatalogPage
+        breadcrumb={UC.breadcrumb}
+        heading="Từ điển dữ liệu"
+        subtitle={
+          <>
+            Quản lý và khai báo dữ liệu từ điển cho toàn bộ hệ thống
+            <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-[#525252]">
+              {DICTIONARY_GROUPS.length} nhóm LOV_GROUP
+            </span>
+          </>
+        }
+        actions={
+          <>
             {/*
               Import Excel: Bảng 05 yêu cầu nút này, nhưng nạp hàng loạt cần thư
               viện đọc .xlsx và cần backend validate từng dòng trước khi ghi. Hiện
               nút ở trạng thái disable để đúng đặc tả mà không giả vờ có chức năng.
+
+              Nút Export của Bảng 05 giờ nằm ở thanh công cụ bên dưới ("Xuất File")
+              cùng chỗ với sáu màn hình danh mục còn lại — một chức năng, một nút.
             */}
             <button
               type="button"
@@ -365,27 +386,23 @@ export const Ims015TuDienView: React.FC = () => {
               Import Excel
             </button>
 
-            <button type="button" onClick={exportRows} className={BTN_OUTLINE}>
-              <Download className="h-4 w-4" />
-              Export (CSV)
-            </button>
-
             <button type="button" onClick={() => setFormTarget({ row: null })} className={BTN_PRIMARY}>
               <Plus className="h-4 w-4" />
               Thêm
             </button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {/*
-          Sáu tiêu chí tìm kiếm của Bảng 04, kết hợp theo AND. Enter ở bất kỳ ô
-          nào cũng chạy tìm kiếm, giống sáu màn hình còn lại.
+          Sáu tiêu chí tìm kiếm của Bảng 04, kết hợp theo AND.
+          Enter ở bất kỳ ô nào cũng chạy tìm kiếm — thanh công cụ không còn nút
+          "Tìm kiếm" riêng, nên câu nhắc dưới đây là chỗ duy nhất nói ra luật này.
         */}
         <div
           onKeyDown={(e) => {
             if (e.key === 'Enter') applySearch();
           }}
-          className="mb-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
+          className="mb-2 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
         >
           <label className="flex items-center gap-2">
             <span className="w-18 shrink-0 text-[13px] text-[#525252]">Mã</span>
@@ -465,75 +482,73 @@ export const Ims015TuDienView: React.FC = () => {
           </label>
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <select
-            value={String(list.draftStatus)}
-            onChange={(e) =>
-              list.setDraftStatus(
-                e.target.value === 'all' ? 'all' : (Number(e.target.value) as 0 | 1),
-              )
-            }
-            aria-label="Lọc theo trạng thái"
-            className={`${SELECT_CLASS} w-auto`}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+        <p className="mb-3 text-xs text-slate-500">
+          Nhấn <span className="font-semibold text-[#525252]">Enter</span> ở bất kỳ ô nào để áp dụng
+          các tiêu chí trên.
+        </p>
 
-          <button type="button" onClick={applySearch} className={BTN_PRIMARY}>
-            <Search className="h-4 w-4" />
-            Tìm kiếm
-          </button>
-
-          <button type="button" onClick={resetFilters} className={BTN_OUTLINE}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
-          </button>
-        </div>
+        <CatalogToolbar
+          status={list.draftStatus}
+          onStatus={list.applyStatus}
+          columns={columns}
+          onExport={exportRows}
+        />
 
         {/* Bảng danh sách — bảy cột theo Bảng 04, thêm cột Trạng thái. */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
-                  STT
-                </th>
-                <SortableTh label="Mã" sortKey="code" sort={list.sort} onSort={list.changeSort} />
-                <SortableTh
-                  label="Giá trị"
-                  sortKey="value"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Loại"
-                  sortKey="lovGroup"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Thứ tự"
-                  sortKey="displayOrder"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <th scope="col" className={TH_CLASS}>
-                  Loại cha
-                </th>
-                <SortableTh
-                  label="Mô tả"
-                  sortKey="description"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <th scope="col" className={TH_CLASS}>
-                  Trạng thái
-                </th>
+                {columns.isVisible('stt') && (
+                  <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
+                    STT
+                  </th>
+                )}
+                {columns.isVisible('lovGroup') && (
+                  <SortableTh
+                    label="Loại"
+                    sortKey="lovGroup"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('code') && (
+                  <SortableTh label="Mã" sortKey="code" sort={list.sort} onSort={list.changeSort} />
+                )}
+                {columns.isVisible('value') && (
+                  <SortableTh
+                    label="Giá trị"
+                    sortKey="value"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('order') && (
+                  <SortableTh
+                    label="Thứ tự"
+                    sortKey="displayOrder"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('parent') && (
+                  <th scope="col" className={TH_CLASS}>
+                    Loại cha
+                  </th>
+                )}
+                {columns.isVisible('description') && (
+                  <SortableTh
+                    label="Mô tả"
+                    sortKey="description"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('status') && (
+                  <th scope="col" className={TH_CLASS}>
+                    Trạng thái
+                  </th>
+                )}
                 <th scope="col" className={TH_CLASS}>
                   Hành động
                 </th>
@@ -544,7 +559,7 @@ export const Ims015TuDienView: React.FC = () => {
               {list.pageRows.length === 0 ? (
                 /* Bảng 05 (nút Tìm kiếm): thông báo là "Không tìm thấy dữ liệu". */
                 <EmptyRow
-                  colSpan={COL_COUNT}
+                  colSpan={columns.visibleCount + 1}
                   title="Không tìm thấy dữ liệu"
                   hint="Thử điều chỉnh các tiêu chí tìm kiếm"
                 />
@@ -554,40 +569,54 @@ export const Ims015TuDienView: React.FC = () => {
 
                   return (
                     <tr key={row.id} className="hover:bg-[#F8FAFC]">
-                      <td className={`${TD_CLASS} text-center text-slate-500`}>
-                        {list.startIdx + idx + 1}
-                      </td>
+                      {columns.isVisible('stt') && (
+                        <td className={`${TD_CLASS} text-center text-slate-500`}>
+                          {list.startIdx + idx + 1}
+                        </td>
+                      )}
 
-                      <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.code}</td>
+                      {columns.isVisible('lovGroup') && (
+                        <td className={`${TD_CLASS} whitespace-nowrap`}>
+                          <div className="font-mono text-xs">{row.lovGroup}</div>
+                          <div className="text-xs text-slate-500">
+                            {dictionaryGroupLabel(row.lovGroup)}
+                          </div>
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>{row.value}</td>
+                      {columns.isVisible('code') && (
+                        <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>{row.code}</td>
+                      )}
 
-                      <td className={`${TD_CLASS} whitespace-nowrap`}>
-                        <div className="font-mono text-xs">{row.lovGroup}</div>
-                        <div className="text-xs text-slate-500">
-                          {dictionaryGroupLabel(row.lovGroup)}
-                        </div>
-                      </td>
+                      {columns.isVisible('value') && <td className={TD_CLASS}>{row.value}</td>}
 
-                      <td className={`${TD_CLASS} whitespace-nowrap`}>
-                        {row.displayOrder ?? <span className="text-slate-400">—</span>}
-                      </td>
+                      {columns.isVisible('order') && (
+                        <td className={`${TD_CLASS} whitespace-nowrap`}>
+                          {row.displayOrder ?? <span className="text-slate-400">—</span>}
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>
-                        {parentLabel ?? <span className="text-slate-400">—</span>}
-                      </td>
+                      {columns.isVisible('parent') && (
+                        <td className={TD_CLASS}>
+                          {parentLabel ?? <span className="text-slate-400">—</span>}
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>
-                        {row.description ? (
-                          row.description
-                        ) : (
-                          <span className="text-slate-400">Chưa có mô tả</span>
-                        )}
-                      </td>
+                      {columns.isVisible('description') && (
+                        <td className={TD_CLASS}>
+                          {row.description ? (
+                            row.description
+                          ) : (
+                            <span className="text-slate-400">Chưa có mô tả</span>
+                          )}
+                        </td>
+                      )}
 
-                      <td className={TD_CLASS}>
-                        <StatusPill active={row.statusFlg === 1} />
-                      </td>
+                      {columns.isVisible('status') && (
+                        <td className={TD_CLASS}>
+                          <StatusPill active={row.statusFlg === 1} />
+                        </td>
+                      )}
 
                       <td className={`${TD_CLASS} whitespace-nowrap`}>
                         <button
@@ -626,7 +655,7 @@ export const Ims015TuDienView: React.FC = () => {
           onPage={list.setPage}
           onPageSize={list.changePageSize}
         />
-      </div>
+      </CatalogPage>
 
       {formTarget && (
         <Ims015DictionaryFormModal
@@ -656,6 +685,6 @@ export const Ims015TuDienView: React.FC = () => {
       )}
 
       <ToastStack toasts={toasts} />
-    </div>
+    </>
   );
 };
