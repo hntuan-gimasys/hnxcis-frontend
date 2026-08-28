@@ -37,6 +37,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { AuditHistoryModal } from './components/common/AuditHistoryModal';
 import { PublicCorporateNews } from './components/portals/PublicCorporateNews';
+import { PublicNewsHeader } from './components/portals/PublicNewsHeader';
 import { CorporatePortal } from './components/portals/CorporatePortal';
 import { DashboardModule } from './components/modules/DashboardModule';
 import { ListingModule } from './components/modules/ListingModule';
@@ -576,28 +577,32 @@ export default function App() {
 
   return (
     <div className={shellClass}>
-      {/* Header */}
-      <Header
-        activePortal={activePortal}
-        currentUser={portalUser}
-        notifications={allNotifications}
-        lang={lang}
-        setLang={setLang}
-        onOpenMenu={() => setSidebarOpen(true)}
-        onLogout={() => {
-          // Đăng xuất chỉ xoá phiên của cổng đang mở — quay lại đúng cổng đó sẽ
-          // gặp lại LoginScreen thay vì bị đẩy sang cổng khác.
-          if (activePortal === 'internal') {
-            setAuthenticated(false);
-            setActiveModule(DEFAULT_IMS_MODULE);
-          } else if (activePortal === 'corporate') {
-            setIcdsUser(null);
-            setActiveModule('corp_dashboard');
-          } else {
-            setNewsUser(null);
-          }
-        }}
-      />
+      {/* Header — cổng công khai có bố cục hoàn toàn khác (mega-menu + thanh chỉ
+          số) nên dùng component riêng thay vì nhồi thêm nhánh vào Header dùng
+          chung của hai cổng còn lại. */}
+      {activePortal === 'public' ? (
+        <PublicNewsHeader currentUser={portalUser} onLogout={() => setNewsUser(null)} />
+      ) : (
+        <Header
+          activePortal={activePortal}
+          currentUser={portalUser}
+          notifications={allNotifications}
+          lang={lang}
+          setLang={setLang}
+          onOpenMenu={() => setSidebarOpen(true)}
+          onLogout={() => {
+            // Đăng xuất chỉ xoá phiên của cổng đang mở — quay lại đúng cổng đó sẽ
+            // gặp lại LoginScreen thay vì bị đẩy sang cổng khác.
+            if (activePortal === 'internal') {
+              setAuthenticated(false);
+              setActiveModule(DEFAULT_IMS_MODULE);
+            } else {
+              setIcdsUser(null);
+              setActiveModule('corp_dashboard');
+            }
+          }}
+        />
+      )}
 
       {/* Main Container */}
       <div className="flex-1 flex overflow-hidden">
@@ -618,7 +623,6 @@ export default function App() {
               organizations={organizations}
               securities={securities}
               submissions={submissions}
-              bonds={bondProfiles}
               lang={lang}
             />
           )}

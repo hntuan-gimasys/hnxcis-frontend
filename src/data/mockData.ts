@@ -816,6 +816,99 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
     status: 'SUBMITTED', lang: 'vi', isPublic: false, translationStatus: 'NONE',
     correctionOfId: 13, correctionType: 'MATERIAL_CORRECTION',
   },
+
+  /**
+   * Bổ sung cho các tab "Trả cổ tức" / "Đại hội cổ đông" / "Phát hành trái
+   * phiếu" / "Thanh toán trái phiếu" của Chuyên trang Công bố Thông tin công
+   * khai (`PublicCorporateNews`) — các nhóm tin này chưa có dữ liệu mẫu.
+   */
+  {
+    id: 16, createdAt: '2026-08-18T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VNM-CT01', templateId: 3, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'HNX_NEWS', organizationId: 1, securityId: 1,
+    titleVi: 'Thông báo chốt danh sách cổ đông thực hiện quyền nhận cổ tức năm 2025 - Vinamilk (VNM)',
+    payload: { summary_note: 'Ngày đăng ký cuối cùng 05/09/2026, tỷ lệ chi trả 20% bằng tiền mặt.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-18T02:30:00Z', reviewedAt: '2026-08-18T03:00:00Z',
+    approvedAt: '2026-08-18T03:30:00Z', publishedAt: '2026-08-18T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 17, createdAt: '2026-08-19T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-HPG-CT02', templateId: 3, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'HNX_NEWS', organizationId: 2, securityId: 2,
+    titleVi: 'CBTT về việc chi trả cổ tức bằng tiền mặt đợt 2 năm 2026 - Hòa Phát (HPG)',
+    payload: { summary_note: 'Chi trả cổ tức tiền mặt tỷ lệ 5%, thời gian thanh toán 20/09/2026.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-19T02:30:00Z', reviewedAt: '2026-08-19T03:00:00Z',
+    approvedAt: '2026-08-19T03:30:00Z', publishedAt: '2026-08-19T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 18, createdAt: '2026-08-20T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VIC-DH01', templateId: 3, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'HNX_NEWS', organizationId: 3, securityId: 3,
+    titleVi: 'Tài liệu Đại hội đồng cổ đông thường niên năm 2026 - Vingroup (VIC)',
+    payload: { summary_note: 'Công bố toàn bộ tài liệu họp Đại hội đồng cổ đông thường niên, dự kiến tổ chức 25/09/2026.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-20T02:30:00Z', reviewedAt: '2026-08-20T03:00:00Z',
+    approvedAt: '2026-08-20T03:30:00Z', publishedAt: '2026-08-20T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 19, createdAt: '2026-08-21T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-ALPH-DH02', templateId: 3, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'HNX_NEWS', organizationId: 4, securityId: 5,
+    titleVi: 'Nghị quyết Đại hội đồng cổ đông bất thường năm 2026 - AlphaTech (ALPH)',
+    payload: { summary_note: 'Thông qua phương án phát hành cổ phiếu cho nhà đầu tư chiến lược.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-21T02:30:00Z', reviewedAt: '2026-08-21T03:00:00Z',
+    approvedAt: '2026-08-21T03:30:00Z', publishedAt: '2026-08-21T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 20, createdAt: '2026-08-22T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VIC-TP01', templateId: 2, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'BOND', organizationId: 3, securityId: 4,
+    titleVi: 'Kết quả phát hành trái phiếu xanh đợt 2 năm 2026 - Vingroup (VIC)',
+    payload: { summary_note: 'Phát hành thành công 500 tỷ đồng trái phiếu xanh, kỳ hạn 5 năm.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-22T02:30:00Z', reviewedAt: '2026-08-22T03:00:00Z',
+    approvedAt: '2026-08-22T03:30:00Z', publishedAt: '2026-08-22T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 21, createdAt: '2026-08-23T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VIC-TP02', templateId: 2, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'BOND', organizationId: 3, securityId: 4,
+    titleVi: 'Thông báo thanh toán lãi trái phiếu VIC123001 kỳ tháng 8 năm 2026 - Vingroup (VIC)',
+    payload: { summary_note: 'Đã thanh toán đầy đủ, đúng hạn lãi trái phiếu VIC123001 kỳ 8/2026.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-23T02:30:00Z', reviewedAt: '2026-08-23T03:00:00Z',
+    approvedAt: '2026-08-23T03:30:00Z', publishedAt: '2026-08-23T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+
+  /**
+   * Hai tin Bất thường đã công bố công khai — không có bản ghi PUBLISHED +
+   * isPublic nào ở nhóm EXTRAORDINARY trước đó, nên nhãn "HOT" trên
+   * `PublicCorporateNews` (dựa trên chính `newsGroupCode` này) chưa bao giờ
+   * hiện được trong danh sách mặc định.
+   */
+  {
+    id: 22, createdAt: '2026-08-24T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VNM-BT02', templateId: 2, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'EXTRAORDINARY', organizationId: 1, securityId: 1,
+    titleVi: 'CBTT Bất thường: Nghị quyết HĐQT về phê duyệt kế hoạch mở rộng thị trường Nhật Bản - Vinamilk (VNM)',
+    payload: { summary_note: 'HĐQT thông qua kế hoạch mở rộng xuất khẩu sang thị trường Nhật Bản năm 2026.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-24T02:30:00Z', reviewedAt: '2026-08-24T03:00:00Z',
+    approvedAt: '2026-08-24T03:30:00Z', publishedAt: '2026-08-24T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
+  {
+    id: 23, createdAt: '2026-08-25T02:00:00Z', createdBy: 4, versionNo: 1, isCurrent: true,
+    submissionNo: 'SUB-2026-VIC-BT03', templateId: 2, templateKind: 'DISCLOSURE_NEWS',
+    newsGroupCode: 'EXTRAORDINARY', organizationId: 3, securityId: 3,
+    titleVi: 'CBTT Bất thường: Về việc chào bán cổ phiếu cho cổ đông hiện hữu (Rights Issue) đợt 1 năm 2026 - Vingroup (VIC)',
+    payload: { summary_note: 'Chào bán cổ phiếu cho cổ đông hiện hữu theo tỷ lệ thực hiện quyền 5:1.' },
+    periodCode: 'AD_HOC', submittedAt: '2026-08-25T02:30:00Z', reviewedAt: '2026-08-25T03:00:00Z',
+    approvedAt: '2026-08-25T03:30:00Z', publishedAt: '2026-08-25T03:35:00Z',
+    status: 'PUBLISHED', lang: 'vi', isPublic: true, translationStatus: 'NONE',
+  },
 ];
 
 export const INITIAL_ALERTS: Alert[] = [
