@@ -370,12 +370,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
         Dùng `hnx-logo.png` — bản chữ TRẮNG trên nền trong suốt. Trên nền
         gradient xanh của sidebar nó đọc rõ; bản `hnx-logo-dark.png` thì không.
         Ảnh đã mang tên hệ thống song ngữ nên không cần thêm dòng chữ nào.
+
+        CHIỀU CAO KHỐI: `h-16` = 64px, đúng `.sidebar-logo{height:64px}` của file
+        mẫu — và PHẢI giữ nguyên con số này. `ImsTopHeader` cũng cao `h-16`, nên
+        đường kẻ dưới của khối logo và đường kẻ dưới của thanh trên nằm trên cùng
+        một hàng, cắt ngang cả trang thành một nét liền. Đổi thành `py-4` không
+        kèm chiều cao cố định là 36 + 32 = 68px, lệch 4px và nét kẻ đó gãy ra.
+        Vì vậy logo căn giữa bằng `items-center` chứ không bằng padding dọc.
+
+        CHIỀU CAO LOGO: `h-9` = 36px. Ảnh là 1056×209 (tỉ lệ 5,05:1) nên chiều
+        cao quyết định chiều rộng: h-9 → 182px. Sidebar `w-64` trừ `px-5` còn
+        216px; dưới md còn thêm nút X (24px) và `gap-2` (8px) cùng hàng, tổng
+        182 + 8 + 24 = 214px — vừa đủ. `h-10` (40px → 202px) thì tổng thành 234px,
+        TRÀN 18px trên điện thoại và đẩy nút Đóng menu ra ngoài; desktop mới đủ
+        chỗ. Nên lấy h-9, mức lớn nhất còn an toàn ở cả hai khổ màn hình.
+
+        Không có `max-h-*` nào trên ảnh này để phải bỏ.
       */}
-      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/14 px-4">
+      <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/14 px-5">
         <img
           src={hnxLogo}
           alt="Sở Giao dịch Chứng khoán Hà Nội — Hanoi Stock Exchange"
-          className="h-7 w-auto shrink-0"
+          className="h-9 w-auto shrink-0"
         />
         <button
           onClick={onCloseMobile}
