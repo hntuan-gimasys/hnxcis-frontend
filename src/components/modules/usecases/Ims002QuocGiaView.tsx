@@ -4,15 +4,17 @@
  */
 
 import React, { useState } from 'react';
-import { Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { findImsUseCaseByCode } from '../../../lib/imsRoutes';
+import { exportToCsv } from '../../../lib/exportCsv';
 import {
-  BTN_OUTLINE,
   BTN_PRIMARY,
+  CatalogPage,
+  CatalogToolbar,
+  ColumnSpec,
   ConfirmDeleteDialog,
   EmptyRow,
-  SELECT_CLASS,
   SortState,
   SortableTh,
   StatusPill,
@@ -20,9 +22,9 @@ import {
   TH_CLASS,
   TablePager,
   ToastStack,
+  useColumnVisibility,
   useToasts,
 } from './catalogUi';
-import { STATUS_OPTIONS } from './catalogTypes';
 import { useCatalogList } from './useCatalogList';
 import { CountryDraft, Ims002CountryFormModal } from './Ims002CountryFormModal';
 import { CountryRow, INITIAL_COUNTRIES } from './ims002CountryMock';
@@ -76,6 +78,25 @@ const searchFields = (row: CountryRow) => [
   row.description,
 ];
 
+/**
+ * Các cột bật/tắt được trên menu `Columns`.
+ *
+ * Nhãn theo file mẫu `docs/quan-ly-danh-muc_2.html` (`Mã`, `Giá trị`) chứ không
+ * phải "Mã Quốc gia"/"Tên Quốc gia" như bản trước: bảy màn hình danh mục dùng
+ * chung một khuôn, tên danh mục đã nằm ở tiêu đề trang nên nhắc lại trên từng
+ * đầu cột chỉ làm bảng chật thêm.
+ *
+ * "Hành động" KHÔNG có trong danh sách này — tắt nó đi thì không còn sửa/xóa
+ * được bản ghi nào.
+ */
+const COLUMNS: readonly ColumnSpec[] = [
+  { key: 'stt', label: 'STT' },
+  { key: 'code', label: 'Mã' },
+  { key: 'name', label: 'Giá trị' },
+  { key: 'description', label: 'Mô tả' },
+  { key: 'status', label: 'Trạng thái' },
+];
+
 export const Ims002QuocGiaView: React.FC = () => {
   const [countries, setCountries] = useState<CountryRow[]>(() => [...INITIAL_COUNTRIES]);
 
@@ -95,6 +116,8 @@ export const Ims002QuocGiaView: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<CountryRow | null>(null);
 
   const { toasts, pushToast } = useToasts();
+
+  const columns = useColumnVisibility(COLUMNS);
 
   /* ------------------------------------------------------------ thao tác */
 
@@ -146,116 +169,100 @@ export const Ims002QuocGiaView: React.FC = () => {
     pushToast('danger', `Đã xóa quốc gia “${row.countryNameVi}”`);
   };
 
+  /**
+   * Xuất File — CSV có BOM UTF-8 qua `lib/exportCsv.ts`, Excel mở trực tiếp là
+   * đúng tiếng Việt.
+   *
+   * Xuất theo `list.visibleRows`: toàn bộ kết quả lọc, KHÔNG phải mười dòng đang
+   * nhìn thấy và cũng không phải các cột đang bật — người dùng lọc rồi bấm xuất
+   * là muốn cả kết quả lọc, còn ẩn cột chỉ là cho dễ đọc trên màn hình.
+   */
+  const exportRows = () => {
+    exportToCsv(
+      'danh-muc-quoc-gia',
+      [
+        { header: 'Mã', value: (r: CountryRow) => r.countryCd },
+        { header: 'Tên (VI)', value: (r: CountryRow) => r.countryNameVi },
+        { header: 'Tên (EN)', value: (r: CountryRow) => r.countryNameEn },
+        { header: 'Mô tả', value: (r: CountryRow) => r.description },
+        {
+          header: 'Trạng thái',
+          value: (r: CountryRow) => (r.statusFlg === 1 ? 'Đang hoạt động' : 'Ngừng hoạt động'),
+        },
+      ],
+      [...list.visibleRows],
+    );
+    pushToast('success', `Xuất dữ liệu thành công (${list.visibleRows.length} dòng)`);
+  };
+
   /* -------------------------------------------------------------- render */
 
-  const COL_COUNT = 6;
-
   return (
-    <div className="p-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {/* Breadcrumb — đúng đường dẫn màn hình ở SRS §2.1. */}
-        <nav className="mb-4 text-xs text-slate-500">{UC.breadcrumb}</nav>
-
-        {/* Toolbar trên: tiêu đề trang + nút Thêm mới. */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#292929]">Quốc gia</h1>
-            <p className="mt-1 text-[13px] text-[#525252]">
-              Quản lý danh sách và tạo mới quốc gia
-              <span className="ml-2 rounded-sm bg-[#E6F4EA] px-1.5 py-0.5 font-mono text-[11px] font-bold text-[#00733E]">
-                {UC.ucCode}
-              </span>
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setFormTarget({ row: null })}
-            className={`${BTN_PRIMARY} shrink-0`}
-          >
+    <>
+      <CatalogPage
+        catalogName={UC.menuLabel}
+        heading="Quốc gia"
+        subtitle="Quản lý danh sách và tạo mới quốc gia"
+        actions={
+          <button type="button" onClick={() => setFormTarget({ row: null })} className={BTN_PRIMARY}>
             <Plus className="h-4 w-4" />
             Thêm mới
           </button>
-        </div>
-
-        {/* Hàng bộ lọc: ô tìm kiếm + trạng thái + Tìm kiếm + Làm mới. */}
-        <div className="mb-4 flex flex-wrap items-center gap-2.5">
-          <div className="flex h-9 min-w-65 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 sm:max-w-85">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" />
-            <input
-              type="text"
-              value={list.draftKeyword}
-              onChange={(e) => list.setDraftKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') list.applySearch();
-              }}
-              placeholder="Tìm kiếm Mã, Tên quốc gia..."
-              aria-label="Từ khóa tìm kiếm"
-              className="w-full border-none bg-transparent text-[13px] text-[#292929] outline-none placeholder:text-slate-400"
-            />
-          </div>
-
-          <select
-            value={String(list.draftStatus)}
-            onChange={(e) =>
-              list.setDraftStatus(
-                e.target.value === 'all' ? 'all' : (Number(e.target.value) as 0 | 1),
-              )
-            }
-            aria-label="Lọc theo trạng thái"
-            className={`${SELECT_CLASS} w-auto`}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
-          <button type="button" onClick={list.applySearch} className={BTN_PRIMARY}>
-            <Search className="h-4 w-4" />
-            Tìm kiếm
-          </button>
-
-          <button type="button" onClick={list.resetFilters} className={BTN_OUTLINE}>
-            <RefreshCw className="h-4 w-4" />
-            Làm mới
-          </button>
-        </div>
+        }
+      >
+        <CatalogToolbar
+          keyword={list.draftKeyword}
+          onKeyword={list.setDraftKeyword}
+          onSearch={list.applySearch}
+          searchPlaceholder="Tìm kiếm Mã, Giá trị..."
+          status={list.draftStatus}
+          onStatus={list.applyStatus}
+          columns={columns}
+          onExport={exportRows}
+        />
 
         {/* Bảng danh sách — các cột theo SRS Bảng 04. */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                <th scope="col" className={`${TH_CLASS} w-15`}>
-                  STT
-                </th>
-                <SortableTh
-                  label="Mã Quốc gia"
-                  sortKey="countryCd"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Tên Quốc gia"
-                  sortKey="countryName"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Mô tả"
-                  sortKey="description"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
-                <SortableTh
-                  label="Trạng thái"
-                  sortKey="statusFlg"
-                  sort={list.sort}
-                  onSort={list.changeSort}
-                />
+                {columns.isVisible('stt') && (
+                  <th scope="col" className={`${TH_CLASS} w-15 text-center`}>
+                    STT
+                  </th>
+                )}
+                {columns.isVisible('code') && (
+                  <SortableTh
+                    label="Mã"
+                    sortKey="countryCd"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('name') && (
+                  <SortableTh
+                    label="Giá trị"
+                    sortKey="countryName"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('description') && (
+                  <SortableTh
+                    label="Mô tả"
+                    sortKey="description"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
+                {columns.isVisible('status') && (
+                  <SortableTh
+                    label="Trạng thái"
+                    sortKey="statusFlg"
+                    sort={list.sort}
+                    onSort={list.changeSort}
+                  />
+                )}
                 <th scope="col" className={TH_CLASS}>
                   Hành động
                 </th>
@@ -265,40 +272,52 @@ export const Ims002QuocGiaView: React.FC = () => {
             <tbody>
               {list.pageRows.length === 0 ? (
                 <EmptyRow
-                  colSpan={COL_COUNT}
+                  colSpan={columns.visibleCount + 1}
                   title="Không tìm thấy dữ liệu"
                   hint="Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm"
                 />
               ) : (
                 list.pageRows.map((row, idx) => (
                   <tr key={row.id} className="hover:bg-[#F8FAFC]">
-                    <td className={`${TD_CLASS} text-slate-500`}>{list.startIdx + idx + 1}</td>
+                    {columns.isVisible('stt') && (
+                      <td className={`${TD_CLASS} text-center text-slate-500`}>
+                        {list.startIdx + idx + 1}
+                      </td>
+                    )}
 
-                    <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>
-                      {row.countryCd}
-                    </td>
+                    {columns.isVisible('code') && (
+                      <td className={`${TD_CLASS} font-semibold whitespace-nowrap`}>
+                        {row.countryCd}
+                      </td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      <div>{row.countryNameVi}</div>
-                      {/*
-                        SRS Bảng 04 chỉ có một cột "Tên Quốc gia" nhưng CSDL lưu
-                        cả tên VI và EN. Hiện tên EN thành dòng phụ để không phải
-                        thêm cột ngoài đặc tả mà vẫn thấy đủ dữ liệu.
-                      */}
-                      <div className="text-xs text-slate-500">{row.countryNameEn}</div>
-                    </td>
+                    {columns.isVisible('name') && (
+                      <td className={TD_CLASS}>
+                        <div>{row.countryNameVi}</div>
+                        {/*
+                          SRS Bảng 04 chỉ có một cột "Tên Quốc gia" nhưng CSDL lưu
+                          cả tên VI và EN. Hiện tên EN thành dòng phụ để không phải
+                          thêm cột ngoài đặc tả mà vẫn thấy đủ dữ liệu.
+                        */}
+                        <div className="text-xs text-slate-500">{row.countryNameEn}</div>
+                      </td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      {row.description ? (
-                        row.description
-                      ) : (
-                        <span className="text-slate-400">Chưa có mô tả</span>
-                      )}
-                    </td>
+                    {columns.isVisible('description') && (
+                      <td className={TD_CLASS}>
+                        {row.description ? (
+                          row.description
+                        ) : (
+                          <span className="text-slate-400">Chưa có mô tả</span>
+                        )}
+                      </td>
+                    )}
 
-                    <td className={TD_CLASS}>
-                      <StatusPill active={row.statusFlg === 1} />
-                    </td>
+                    {columns.isVisible('status') && (
+                      <td className={TD_CLASS}>
+                        <StatusPill active={row.statusFlg === 1} />
+                      </td>
+                    )}
 
                     <td className={`${TD_CLASS} whitespace-nowrap`}>
                       <button
@@ -336,7 +355,7 @@ export const Ims002QuocGiaView: React.FC = () => {
           onPage={list.setPage}
           onPageSize={list.changePageSize}
         />
-      </div>
+      </CatalogPage>
 
       {formTarget && (
         <Ims002CountryFormModal
@@ -359,6 +378,6 @@ export const Ims002QuocGiaView: React.FC = () => {
       )}
 
       <ToastStack toasts={toasts} />
-    </div>
+    </>
   );
 };

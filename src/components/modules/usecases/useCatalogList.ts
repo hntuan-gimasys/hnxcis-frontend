@@ -50,6 +50,18 @@ export interface CatalogListState<T> {
   /* --- áp dụng / đặt lại --- */
   /** Gọi khi bấm Tìm kiếm hoặc nhấn Enter trong ô từ khóa. */
   applySearch: () => void;
+  /**
+   * Đổi VÀ áp dụng ngay bộ lọc trạng thái.
+   *
+   * Thanh công cụ mới (theo `docs/quan-ly-danh-muc_2.html`) không còn nút "Tìm
+   * kiếm", nên ô chọn trạng thái phải tự lọc khi đổi. Không dùng
+   * `setDraftStatus` rồi `applySearch` được: `applySearch` đọc `draftStatus` của
+   * lần render hiện tại, nên sẽ áp lại giá trị CŨ.
+   *
+   * Chỉ ảnh hưởng trạng thái — từ khóa đang gõ dở vẫn nằm ở `draft` như SRS quy
+   * định.
+   */
+  applyStatus: (value: StatusFilter) => void;
   /** Gọi khi bấm Làm mới: bỏ hết điều kiện lọc và về thứ tự mặc định. */
   resetFilters: () => void;
 
@@ -72,6 +84,13 @@ export interface CatalogListState<T> {
   startIdx: number;
   /** Bản ghi của trang hiện tại. */
   pageRows: readonly T[];
+  /**
+   * TOÀN BỘ bản ghi thỏa điều kiện lọc, đã sắp xếp nhưng CHƯA cắt trang.
+   *
+   * Dùng cho nút Xuất File: người dùng lọc rồi bấm xuất là muốn cả kết quả lọc,
+   * không phải mười dòng đang nhìn thấy.
+   */
+  visibleRows: readonly T[];
 }
 
 export function useCatalogList<T extends CatalogRecord>({
@@ -144,6 +163,12 @@ export function useCatalogList<T extends CatalogRecord>({
       setPage(1);
     },
 
+    applyStatus: (value: StatusFilter) => {
+      setDraftStatus(value);
+      setAppliedStatus(value);
+      setPage(1);
+    },
+
     resetFilters: () => {
       setDraftKeyword('');
       setDraftStatus('all');
@@ -171,5 +196,6 @@ export function useCatalogList<T extends CatalogRecord>({
     total,
     startIdx,
     pageRows: visibleRows.slice(startIdx, startIdx + pageSize),
+    visibleRows,
   };
 }
