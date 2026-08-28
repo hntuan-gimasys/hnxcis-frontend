@@ -35,6 +35,7 @@ import { notificationService } from './services/notificationService';
 import { buildAiDraftTranslation } from './data/translationGlossary';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { ImsTopHeader } from './components/layout/ImsTopHeader';
 import { AuditHistoryModal } from './components/common/AuditHistoryModal';
 import { PublicCorporateNews } from './components/portals/PublicCorporateNews';
 import { PublicNewsHeader } from './components/portals/PublicNewsHeader';
@@ -560,23 +561,226 @@ export default function App() {
     activePortal === 'corporate' ? icdsUser! : activePortal === 'public' ? newsUser! : currentUser;
 
   /**
-   * Nen trang cua /ims theo bang mau Figma: xam nhat #EBEBEB, chu #292929.
-   *
-   * Chi ap cho cong noi bo. ICDS va Corporate News giu nguyen `bg-slate-50` —
-   * hai cong do khong nam trong pham vi doi mau.
+   * Ba khoi JSX dung cho ca hai bo cuc ben duoi, tach ra de khong phai viet hai
+   * lan: noi dung cua /ims, va popup lich su chinh sua.
    */
-  const shellClass =
-    activePortal === 'internal'
-      ? 'min-h-screen bg-[#EBEBEB] text-[#292929] flex flex-col font-sans antialiased'
-      : 'min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased';
+  const imsContent = (
+    <>
+      {/* Các chức năng đã có SRS — xem `lib/imsRoutes.ts`. */}
+      {isImsUseCaseModule(activeModule) && <UseCaseRouter activeModule={activeModule} />}
 
-  const mainClass =
-    activePortal === 'internal'
-      ? 'flex-1 overflow-y-auto bg-[#EBEBEB]'
-      : 'flex-1 overflow-y-auto bg-slate-50';
+      {activeModule === 'dashboard' && (
+        <DashboardModule
+          submissions={submissions}
+          alerts={alerts}
+          obligations={obligations}
+          tasks={tasks}
+          currentUser={currentUser}
+          securities={securities}
+          organizations={organizations}
+          onNavigateToModule={(mod) => setActiveModule(mod)}
+        />
+      )}
 
+      {activeModule === 'ai_center' && <AiCenterModule />}
+
+      {activeModule.startsWith('qlny_') && (
+        <ListingModule
+          activeModule={activeModule}
+          onChangeModule={setActiveModule}
+          organizations={organizations}
+          securities={securities}
+          equityProfiles={equityProfiles}
+          bondProfiles={bondProfiles}
+          alerts={alerts}
+          surveillanceRecords={surveillanceRecords}
+          dossiers={dossiers}
+          fees={fees}
+          userRole={currentUser.roleCode}
+          onAuditHistory={handleOpenAuditHistory}
+          onConfirmDossierFee={handleConfirmDossierFee}
+        />
+      )}
+
+      {activeModule.startsWith('tttp_') && (
+        <BondModule
+          activeModule={activeModule}
+          onChangeModule={setActiveModule}
+          bonds={bondProfiles}
+          onAuditHistory={handleOpenAuditHistory}
+        />
+      )}
+
+      {activeModule.startsWith('tttt_') && (
+        <DisclosureModule
+          activeModule={activeModule}
+          submissions={submissions}
+          organizations={organizations}
+          alerts={alerts}
+          templates={templates}
+          onReviewSubmission={handleReviewSubmission}
+          onApproveSubmission={handleApproveSubmission}
+          onSaveTranslation={handleSaveTranslation}
+          onPublishBilingual={handlePublishBilingual}
+          onRejectSubmission={handleRejectSubmission}
+          onHideSubmission={handleHideSubmission}
+          onAuditHistory={handleOpenAuditHistory}
+          currentUserId={currentUser.id}
+        />
+      )}
+
+      {activeModule.startsWith('admin_') && (
+        <AdminModule
+          activeModule={activeModule}
+          users={users}
+          currentUser={currentUser}
+          templates={templates}
+          onUpdateTemplate={(updated) =>
+            setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
+          }
+        />
+      )}
+
+      {activeModule.startsWith('meta_') && (
+        <MetadataModule
+          activeModule={activeModule}
+          userRole={currentUser.roleCode}
+          templates={templates}
+        />
+      )}
+
+      {activeModule.startsWith('access_') && (
+        <AccessModule
+          activeModule={activeModule}
+          userRole={currentUser.roleCode}
+          organizations={organizations}
+        />
+      )}
+
+      {activeModule.startsWith('surv_') && (
+        <SurveillanceModule
+          activeModule={activeModule}
+          organizations={organizations}
+          userRole={currentUser.roleCode}
+        />
+      )}
+
+      {activeModule.startsWith('own_') && (
+        <OwnershipModule
+          activeModule={activeModule}
+          securities={securities}
+          organizations={organizations}
+          userRole={currentUser.roleCode}
+        />
+      )}
+
+      {activeModule.startsWith('bond_') && (
+        <BondExtraModule
+          activeModule={activeModule}
+          bondProfiles={bondProfiles}
+          securities={securities}
+          organizations={organizations}
+          userRole={currentUser.roleCode}
+        />
+      )}
+
+      {activeModule.startsWith('cbtt_') && (
+        <DisclosureExtraModule
+          activeModule={activeModule}
+          submissions={submissions}
+          templates={templates}
+          organizations={organizations}
+          userRole={currentUser.roleCode}
+          onHideSubmission={(id, reason) => handleHideSubmission(id, reason)}
+        />
+      )}
+
+      {(activeModule.startsWith('report_') || activeModule.startsWith('survey_')) && (
+        activeModule.startsWith('report_') ? (
+          <ReportModule
+            activeModule={activeModule}
+            organizations={organizations}
+            securities={securities}
+            submissions={submissions}
+            bondProfiles={bondProfiles}
+            obligations={obligations}
+            userRole={currentUser.roleCode}
+          />
+        ) : (
+          <SurveyModule activeModule={activeModule} userRole={currentUser.roleCode} />
+        )
+      )}
+    </>
+  );
+
+  const auditModal = (
+    <AuditHistoryModal
+      isOpen={auditModalOpen}
+      onClose={() => setAuditModalOpen(false)}
+      entityType={auditEntity.type}
+      entityId={auditEntity.id}
+      entityLabel={auditEntity.label}
+      auditLogs={selectedAuditLogs}
+    />
+  );
+
+  /**
+   * BO CUC /ims — theo `docs/quan-ly-danh-muc_2.html`.
+   *
+   * Sidebar cao het trang o ben trai (logo o dau, card nguoi dung o chan), con
+   * thanh tren trang chi chiem cot ben phai sidebar. Thanh banner toi chay het
+   * chieu ngang mang chu "IMS — Cong Noi bo HNX" da bo han: ten cong khong con
+   * la thong tin dang chiem mot dai ngang, va logo o dau sidebar da noi ro day
+   * la he thong nao.
+   *
+   * Nen trang giu #EBEBEB va chu #292929 theo bang mau Figma.
+   */
+  if (activePortal === 'internal') {
+    return (
+      <div className="flex min-h-screen bg-[#EBEBEB] font-sans text-[#292929] antialiased">
+        <Sidebar
+          activeModule={activeModule}
+          setActiveModule={changeModule}
+          userRole={currentUser.roleCode}
+          activePortal="internal"
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
+          currentUser={currentUser}
+          onLogout={() => {
+            setAuthenticated(false);
+            setActiveModule(DEFAULT_IMS_MODULE);
+          }}
+        />
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/*
+            Không truyền `lang`/`setLang`: /ims không còn nút chuyển ngôn ngữ, và
+            không màn hình nào trong cổng nội bộ đọc cờ này. State `lang` vẫn ở
+            đây vì /icds và /hnxcns dùng.
+          */}
+          <ImsTopHeader
+            currentUser={currentUser}
+            notifications={allNotifications}
+            onOpenMenu={() => setSidebarOpen(true)}
+            onNavigate={changeModule}
+          />
+
+          {/*
+            Khong dat `overflow-y-auto` o day: trang cuon o cap body, sidebar
+            `sticky` dung yen theo — dung nhu file mau. Mot vung cuon rieng o day
+            se cat mat cac dropdown `absolute` ben trong (menu Columns, popup).
+          */}
+          <main className="min-w-0 flex-1 bg-[#EBEBEB]">{imsContent}</main>
+        </div>
+
+        {auditModal}
+      </div>
+    );
+  }
+
+  /** ICDS va Corporate News giu nguyen bo cuc cu — khong nam trong pham vi doi UI. */
   return (
-    <div className={shellClass}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
       {/* Header — cổng công khai có bố cục hoàn toàn khác (mega-menu + thanh chỉ
           số) nên dùng component riêng thay vì nhồi thêm nhánh vào Header dùng
           chung của hai cổng còn lại. */}
@@ -591,15 +795,20 @@ export default function App() {
           setLang={setLang}
           onOpenMenu={() => setSidebarOpen(true)}
           onLogout={() => {
-            // Đăng xuất chỉ xoá phiên của cổng đang mở — quay lại đúng cổng đó sẽ
-            // gặp lại LoginScreen thay vì bị đẩy sang cổng khác.
-            if (activePortal === 'internal') {
-              setAuthenticated(false);
-              setActiveModule(DEFAULT_IMS_MODULE);
-            } else {
-              setIcdsUser(null);
-              setActiveModule('corp_dashboard');
-            }
+            /*
+              Nhánh này giờ CHỈ còn /icds.
+
+              /ims đã tách ra shell riêng ở nhánh `return` phía trên (sidebar cao
+              hết trang + ImsTopHeader), còn /hnxcns dùng `PublicNewsHeader` ở
+              trên. Nên không cần kiểm tra `activePortal` nữa — bỏ luôn cả nhánh
+              `internal` cũ, vì để lại một nhánh không bao giờ chạy chỉ khiến
+              người đọc sau tưởng /ims vẫn đăng xuất qua đây.
+
+              Đăng xuất chỉ xoá phiên của cổng đang mở — quay lại đúng cổng đó sẽ
+              gặp lại LoginScreen thay vì bị đẩy sang cổng khác.
+            */
+            setIcdsUser(null);
+            setActiveModule('corp_dashboard');
           }}
         />
       )}
@@ -617,7 +826,7 @@ export default function App() {
         />
 
         {/* Content View */}
-        <main className={mainClass}>
+        <main className="flex-1 overflow-y-auto bg-slate-50">
           {activePortal === 'public' && (
             <PublicCorporateNews
               organizations={organizations}
@@ -644,166 +853,10 @@ export default function App() {
             />
           )}
 
-          {activePortal === 'internal' && (
-            <>
-              {/* Các chức năng đã có SRS — xem `lib/imsRoutes.ts`. */}
-              {isImsUseCaseModule(activeModule) && <UseCaseRouter activeModule={activeModule} />}
-
-              {activeModule === 'dashboard' && (
-                <DashboardModule
-                  submissions={submissions}
-                  alerts={alerts}
-                  obligations={obligations}
-                  tasks={tasks}
-                  currentUser={currentUser}
-                  securities={securities}
-                  organizations={organizations}
-                  onNavigateToModule={(mod) => setActiveModule(mod)}
-                />
-              )}
-
-              {activeModule === 'ai_center' && <AiCenterModule />}
-
-              {activeModule.startsWith('qlny_') && (
-                <ListingModule
-                  activeModule={activeModule}
-                  onChangeModule={setActiveModule}
-                  organizations={organizations}
-                  securities={securities}
-                  equityProfiles={equityProfiles}
-                  bondProfiles={bondProfiles}
-                  alerts={alerts}
-                  surveillanceRecords={surveillanceRecords}
-                  dossiers={dossiers}
-                  fees={fees}
-                  userRole={currentUser.roleCode}
-                  onAuditHistory={handleOpenAuditHistory}
-                  onConfirmDossierFee={handleConfirmDossierFee}
-                />
-              )}
-
-              {activeModule.startsWith('tttp_') && (
-                <BondModule
-                  activeModule={activeModule}
-                  onChangeModule={setActiveModule}
-                  bonds={bondProfiles}
-                  onAuditHistory={handleOpenAuditHistory}
-                />
-              )}
-
-              {activeModule.startsWith('tttt_') && (
-                <DisclosureModule
-                  activeModule={activeModule}
-                  submissions={submissions}
-                  organizations={organizations}
-                  alerts={alerts}
-                  templates={templates}
-                  onReviewSubmission={handleReviewSubmission}
-                  onApproveSubmission={handleApproveSubmission}
-                  onSaveTranslation={handleSaveTranslation}
-                  onPublishBilingual={handlePublishBilingual}
-                  onRejectSubmission={handleRejectSubmission}
-                  onHideSubmission={handleHideSubmission}
-                  onAuditHistory={handleOpenAuditHistory}
-                  currentUserId={currentUser.id}
-                />
-              )}
-
-              {activeModule.startsWith('admin_') && (
-                <AdminModule
-                  activeModule={activeModule}
-                  users={users}
-                  currentUser={currentUser}
-                  templates={templates}
-                  onUpdateTemplate={(updated) =>
-                    setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-                  }
-                />
-              )}
-
-              {activeModule.startsWith('meta_') && (
-                <MetadataModule
-                  activeModule={activeModule}
-                  userRole={currentUser.roleCode}
-                  templates={templates}
-                />
-              )}
-
-              {activeModule.startsWith('access_') && (
-                <AccessModule
-                  activeModule={activeModule}
-                  userRole={currentUser.roleCode}
-                  organizations={organizations}
-                />
-              )}
-
-              {activeModule.startsWith('surv_') && (
-                <SurveillanceModule
-                  activeModule={activeModule}
-                  organizations={organizations}
-                  userRole={currentUser.roleCode}
-                />
-              )}
-
-              {activeModule.startsWith('own_') && (
-                <OwnershipModule
-                  activeModule={activeModule}
-                  securities={securities}
-                  organizations={organizations}
-                  userRole={currentUser.roleCode}
-                />
-              )}
-
-              {activeModule.startsWith('bond_') && (
-                <BondExtraModule
-                  activeModule={activeModule}
-                  bondProfiles={bondProfiles}
-                  securities={securities}
-                  organizations={organizations}
-                  userRole={currentUser.roleCode}
-                />
-              )}
-
-              {activeModule.startsWith('cbtt_') && (
-                <DisclosureExtraModule
-                  activeModule={activeModule}
-                  submissions={submissions}
-                  templates={templates}
-                  organizations={organizations}
-                  userRole={currentUser.roleCode}
-                  onHideSubmission={(id, reason) => handleHideSubmission(id, reason)}
-                />
-              )}
-
-              {(activeModule.startsWith('report_') || activeModule.startsWith('survey_')) && (
-                activeModule.startsWith('report_') ? (
-                  <ReportModule
-                    activeModule={activeModule}
-                    organizations={organizations}
-                    securities={securities}
-                    submissions={submissions}
-                    bondProfiles={bondProfiles}
-                    obligations={obligations}
-                    userRole={currentUser.roleCode}
-                  />
-                ) : (
-                  <SurveyModule activeModule={activeModule} userRole={currentUser.roleCode} />
-                )
-              )}
-            </>
-          )}
         </main>
       </div>
 
-      {/* Audit History Modal */}
-      <AuditHistoryModal
-        isOpen={auditModalOpen}
-        onClose={() => setAuditModalOpen(false)}
-        entityType={auditEntity.type}
-        entityId={auditEntity.id}
-        entityLabel={auditEntity.label}
-        auditLogs={selectedAuditLogs}
-      />
+      {auditModal}
     </div>
   );
 }

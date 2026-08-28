@@ -1,6 +1,41 @@
+/*
+  Roboto — kiểu chữ của `docs/quan-ly-danh-muc_2.html`:
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+    body { font-family:'Roboto',-apple-system,BlinkMacSystemFont,sans-serif; }
+
+  DÒNG NÀY PHẢI ĐỨNG ĐẦU FILE. Đặc tả CSS bắt mọi `@import` nằm trước mọi rule
+  khác, và `@import "tailwindcss"` bên dưới bị plugin Tailwind bung thành hàng
+  nghìn dòng CSS — xếp font sau nó là xếp một `@import` sau rule, trình duyệt bỏ
+  qua và font im lặng không tải.
+
+  Trục cân nặng lấy `400..900` (font biến thiên) chứ không phải danh sách tĩnh
+  `400;500;600;700` của file mẫu: repo đang dùng `font-extrabold` (800) và
+  `font-black` (900) ở 20 chỗ. Thiếu hai mức đó thì trình duyệt tự làm đậm giả
+  (faux bold) — chữ bị kéo dày méo nét. Ở các mức 400–700 mà file mẫu dùng, font
+  biến thiên vẽ ra ĐÚNG như bản tĩnh, nên đây là cách khớp mẫu sát hơn chứ không
+  phải chệch đi.
+
+  `display=swap`: giữ nguyên của file mẫu — chữ hiện ngay bằng font hệ thống rồi
+  đổi sang Roboto khi tải xong, thay vì để trang trắng chờ font.
+*/
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400..900&display=swap");
 @import "tailwindcss";
 
 @theme {
+  /*
+    Đặt `--font-sans` là đặt luôn font mặc định của toàn tài liệu: preflight của
+    Tailwind v4 gán `html { font-family: var(--default-font-family) }`, mà
+    `--default-font-family` mặc định trỏ về `var(--font-sans)`. Nên không cần
+    thêm rule `body {}` nào, và mọi `font-sans` rải trong App.tsx / các module
+    cũng ăn theo cùng một chỗ khai báo này.
+
+    Chuỗi dự phòng giữ nguyên thứ tự của file mẫu: `-apple-system` và
+    `BlinkMacSystemFont` đứng trước `sans-serif` để máy Apple rơi về San
+    Francisco thay vì Helvetica khi Roboto chưa tải xong.
+  */
+  --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+
   --color-hnx-light: #6fae55;
   --color-hnx-mid: #4f8f3a;
   --color-hnx-deep: #2f6b1d;
